@@ -1,0 +1,156 @@
+{
+  "id": "17689",
+  "slug": "course-17689",
+  "title": "دورة تعلم قص الشعر",
+  "description": "معرفة الخطوات الأساسية قبل البدء بالقص . قص الشعر بلمسات فنية تؤدي إلى مظهر جميل تعلم كيفية استخدام الأدوات والوسائل",
+  "thumbnail": "https://koukibeauty.com/wp-content/uploads/2025/03/طرق_قص_الشعر.jpg",
+  "category": "عام",
+  "level": "beginner",
+  "duration": {
+    "hours": 0,
+    "minutes": 0
+  },
+  "priceType": "paid",
+  "previewVideoId": "XpCYd8N6SXI",
+  "benefits": [
+    "قصة ديقرادي قصيرة على شعر خفيف",
+    "تعلمي تقصي ديقرادي قصيرة بلا ما تخسري الشعر طوله",
+    "طريقة قص كاري كلاسيكية على شعر خفيف",
+    "قص شعر طويل دقرادي محروق من المكواة",
+    "كاري بلونجونت",
+    "قصة ديقرادي ايفيلي في شعر طريل coupe dégradé",
+    "Coupe carrée plongeante كاري بلونجونت طويلة",
+    "طريقة قص الشعر عمل égalisation",
+    "طريقة سهل ل قص كوب كيلي",
+    "طريقة قص كوب كيلي على شعر متوسط الطول",
+    "طريقة قص كوب دقرادي شعر طويل",
+    "Carrée plongeante كاري بلونجونت",
+    "قص كوب ديقرادي قصيرة coupe dégradée courte",
+    "طريقة قص كوب ديقرادي على شعر طويل",
+    "اول درس في القص الادوات اللازمة لقص الشعر",
+    "كوب كاري بلونجو على شعر محروق carré plongeant",
+    "coupe carré long كوب كاري طويلة"
+  ],
+  "targetAudience": [],
+  "materials": [],
+  "modules": [
+    {
+      "id": "module-17733",
+      "title": "01 الادوات المستعملة لقص الشعر",
+      "order": 1,
+      "lessons": [
+        {
+          "id": "lesson-18288",
+          "title": "قصة ديقرادي قصيرة على شعر خفيف",
+          "order": 1,
+          "videoId": "XpCYd8N6SXI"
+        },
+        {
+          "id": "lesson-18273",
+          "title": "تعلمي تقصي ديقرادي قصيرة بلا ما تخسري الشعر طوله",
+          "order": 2,
+          "videoId": "J4VDpj0g73g"
+        },
+        {
+          "id": "lesson-18271",
+          "title": "طريقة قص كاري كلاسيكية على شعر خفيف",
+          "order": 3,
+          "videoId": "wB7RRFkGylM"
+        },
+        {
+          "id": "lesson-18269",
+          "title": "قص شعر طويل دقرادي محروق من المكواة",
+          "order": 4,
+          "videoId": "AyorA7aGebg"
+        },
+        {
+          "id": "lesson-18053",
+          "title": "كاري بلونجونت",
+          "order": 5,
+          "videoId": "W4NDN6Nc49I"
+        },
+        {
+          "id": "lesson-18003",
+          "title": "قصة ديقرادي ايفيلي في شعر طريل coupe dégradé",
+          "order": 6,
+          "videoId": "eOYBVF4C5b4"
+        },
+        {
+          "id": "lesson-18000",
+          "title": "Coupe carrée plongeante كاري بلونجونت طويلة",
+          "order": 7,
+          "videoId": "W4NDN6Nc49I"
+        },
+        {
+          "id": "lesson-17846",
+          "title": "طريقة قص الشعر عمل égalisation",
+          "order": 8,
+          "videoId": "mNjehGgcN10"
+        },
+        {
+          "id": "lesson-17823",
+          "title": "طريقة سهل ل قص كوب كيلي",
+          "order": 9,
+          "videoId": "pOZChkTjEqs"
+        },
+        {
+          "id": "lesson-17821",
+          "title": "طريقة قص كوب كيلي على شعر متوسط الطول",
+          "order": 10,
+          "videoId": "fUjIR_z9lF8"
+        },
+        {
+          "id": "lesson-17819",
+          "title": "طريقة قص كوب دقرادي شعر طويل",
+          "order": 11,
+          "videoId": "k_2ZrGiO7s4"
+        },
+        {
+          "id": "lesson-17766",
+          "title": "Carrée plongeante كاري بلونجونت",
+          "order": 12,
+          "videoId": "_1ufMO22Kms"
+        },
+        {
+          "id": "lesson-17764",
+          "title": "قص كوب ديقرادي قصيرة coupe dégradée courte",
+          "order": 13,
+          "videoId": "vYdPideza0Y"
+        },
+        {
+          "id": "lesson-17747",
+          "title": "طريقة قص كوب ديقرادي على شعر طويل",
+          "order": 14,
+          "videoId": "Cuh_TVB7Mn8"
+        },
+        {
+          "id": "lesson-17745",
+          "title": "اول درس في القص الادوات اللازمة لقص الشعر",
+          "order": 15,
+          "videoId": "ycm_VOSPzlw"
+        }
+      ]
+    },
+    {
+      "id": "module-17760",
+      "title": "طريقة قص كوب كاري بجميع أنواعها و اشكالها",
+      "order": 2,
+      "lessons": [
+        {
+          "id": "lesson-17773",
+          "title": "كوب كاري بلونجو على شعر محروق carré plongeant",
+          "order": 1,
+          "videoId": "_w6jRqNnuIo"
+        },
+        {
+          "id": "lesson-17762",
+          "title": "coupe carré long كوب كاري طويلة",
+          "order": 2,
+          "videoId": "48vrPVS_EyE"
+        }
+      ]
+    }
+  ],
+  "createdAt": "2025-10-21 12:58:09",
+  "updatedAt": "2026-07-20T13:26:48.479Z"
+}

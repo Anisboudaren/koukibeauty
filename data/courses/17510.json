@@ -1,0 +1,58 @@
+{
+  "id": "17510",
+  "slug": "course-17510",
+  "title": "علاجات الشعر و الفرق بينها و كيفية استعمالها",
+  "description": "ماهي العلاجات و انواعها و كل نوعية شعر ماذا نستعمل لها كعلاج لاصلاحها و علاجها",
+  "thumbnail": "https://koukibeauty.com/wp-content/uploads/2025/02/Lissage-bresilien-v-botox-capillaire.jpg",
+  "category": "العلاجات",
+  "level": "beginner",
+  "duration": {
+    "hours": 0,
+    "minutes": 0
+  },
+  "priceType": "paid",
+  "previewVideoId": "0FcRISWsaJ0",
+  "benefits": [
+    "الفرق و الاختلاف بين علاجات الشعر و ماهي الحالات التي نستعمل فيها العلاج الساخن ام البارد",
+    "علاج شعر الفيلر لشعر جد مجعد نتيجة روعة",
+    "01 درس تطبيقي لعلاج شعر مصبوغ ب ليساج كودومبيان lissage colombien"
+  ],
+  "targetAudience": [],
+  "materials": [],
+  "modules": [
+    {
+      "id": "module-17519",
+      "title": "نظرة عن العلاجات و الاختلاف بينها في الاستعمال",
+      "order": 1,
+      "lessons": [
+        {
+          "id": "lesson-17723",
+          "title": "الفرق و الاختلاف بين علاجات الشعر و ماهي الحالات التي نستعمل فيها العلاج الساخن ام البارد",
+          "order": 1,
+          "videoId": "0FcRISWsaJ0"
+        }
+      ]
+    },
+    {
+      "id": "module-17769",
+      "title": "دروس تطبيقية علاجات الشعر",
+      "order": 2,
+      "lessons": [
+        {
+          "id": "lesson-17828",
+          "title": "علاج شعر الفيلر لشعر جد مجعد نتيجة روعة",
+          "order": 1,
+          "videoId": "A3OHyxKF5S8"
+        },
+        {
+          "id": "lesson-17771",
+          "title": "01 درس تطبيقي لعلاج شعر مصبوغ ب ليساج كودومبيان lissage colombien",
+          "order": 2,
+          "videoId": "QcVv_muwE2g"
+        }
+      ]
+    }
+  ],
+  "createdAt": "2025-04-06 22:13:39",
+  "updatedAt": "2026-07-20T13:26:12.902Z"
+}

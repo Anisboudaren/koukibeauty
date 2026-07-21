@@ -1,0 +1,100 @@
+[
+  {
+    "id": "17510",
+    "slug": "course-17510",
+    "title": "علاجات الشعر و الفرق بينها و كيفية استعمالها",
+    "thumbnail": "https://koukibeauty.com/wp-content/uploads/2025/02/Lissage-bresilien-v-botox-capillaire.jpg",
+    "category": "العلاجات",
+    "level": "beginner",
+    "duration": {
+      "hours": 0,
+      "minutes": 0
+    },
+    "priceType": "paid",
+    "lessonCount": 3
+  },
+  {
+    "id": "17522",
+    "slug": "course-17522",
+    "title": "دورة اساسيات صبغ الشعر للمبتدئات من الألف إلى الياء",
+    "thumbnail": "https://koukibeauty.com/wp-content/uploads/2025/02/56c16005-6e8f-42ec-936b-08316dcfac70-1.jpg",
+    "category": "صبغ الشعر",
+    "level": "beginner",
+    "duration": {
+      "hours": 5,
+      "minutes": 30
+    },
+    "priceType": "paid",
+    "lessonCount": 39
+  },
+  {
+    "id": "17526",
+    "slug": "course-17526",
+    "title": "دورة شاملة دوة في التسريحات العصرية",
+    "thumbnail": "https://koukibeauty.com/wp-content/uploads/2025/02/475987861_596895433146157_8803721218031774152_n.jpg",
+    "category": "تسريحات",
+    "level": "beginner",
+    "duration": {
+      "hours": 0,
+      "minutes": 0
+    },
+    "priceType": "paid",
+    "lessonCount": 18
+  },
+  {
+    "id": "17659",
+    "slug": "course-17659",
+    "title": "دورة في المكياج الاحترافي و العصري للمبتدئات من الألف إلى الياء",
+    "thumbnail": "https://koukibeauty.com/wp-content/uploads/2025/02/IMG_5226-scaled.jpg",
+    "category": "المكياج",
+    "level": "beginner",
+    "duration": {
+      "hours": 5,
+      "minutes": 30
+    },
+    "priceType": "paid",
+    "lessonCount": 8
+  },
+  {
+    "id": "17666",
+    "slug": "course-17666",
+    "title": "دورة في التجميل",
+    "thumbnail": "https://koukibeauty.com/wp-content/uploads/2025/02/IMG_5187-scaled.jpg",
+    "category": "التجميل",
+    "level": "beginner",
+    "duration": {
+      "hours": 0,
+      "minutes": 0
+    },
+    "priceType": "paid",
+    "lessonCount": 9
+  },
+  {
+    "id": "17677",
+    "slug": "course-17677",
+    "title": "دورة في تسيير المحل ورالتسويق الصحيح للخدمة",
+    "thumbnail": "https://koukibeauty.com/wp-content/uploads/2025/03/طرق-تسويق-جديدة.webp",
+    "category": "عام",
+    "level": "beginner",
+    "duration": {
+      "hours": 0,
+      "minutes": 0
+    },
+    "priceType": "paid",
+    "lessonCount": 0
+  },
+  {
+    "id": "17689",
+    "slug": "course-17689",
+    "title": "دورة تعلم قص الشعر",
+    "thumbnail": "https://koukibeauty.com/wp-content/uploads/2025/03/طرق_قص_الشعر.jpg",
+    "category": "عام",
+    "level": "beginner",
+    "duration": {
+      "hours": 0,
+      "minutes": 0
+    },
+    "priceType": "paid",
+    "lessonCount": 17
+  }
+]
