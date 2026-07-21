@@ -1,10 +1,14 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/home/site-footer";
 
-export const metadata = {
-  title: "سياسة الخصوصية والشروط | koukibeauty academy",
-  description: "سياسة الخصوصية وشروط الاستخدام لأكاديمية كوكي بيوتي",
+export const metadata: Metadata = {
+  title: "سياسة الخصوصية والشروط",
+  description:
+    "سياسة الخصوصية وشروط الاستخدام لأكاديمية كوكي بيوتي (koukibeauty academy).",
+  alternates: { canonical: "/privacy" },
+  robots: { index: true, follow: true },
 };
 
 const sections = [

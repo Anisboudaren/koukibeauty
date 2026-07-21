@@ -1,11 +1,55 @@
 import Image from "next/image";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/layout/site-header";
 import { CourseAccessCta } from "@/components/courses/course-access-cta";
-import { getCourseBySlug } from "@/lib/courses";
+import { getCourseBySlug, getCourseSummaries } from "@/lib/courses";
 import { formatDuration, levelLabel } from "@/lib/parse-course-content";
 import { getEffectivePrice, hasPromo } from "@/lib/types";
+import { absoluteUrl } from "@/lib/seo";
 import { CheckCircle, PlayCircle } from "lucide-react";
+
+export async function generateStaticParams() {
+  const courses = await getCourseSummaries();
+  return courses.map((c) => ({ slug: c.slug }));
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const course = await getCourseBySlug(slug);
+  if (!course || course.archived) {
+    return { title: "دورة غير موجودة" };
+  }
+
+  const description =
+    course.description?.slice(0, 160) ||
+    `${course.title} — برنامج من أكاديمية كوكي بيوتي`;
+
+  return {
+    title: course.title,
+    description,
+    alternates: { canonical: `/courses/${course.slug}` },
+    openGraph: {
+      title: course.title,
+      description,
+      url: `/courses/${course.slug}`,
+      type: "article",
+      images: course.thumbnail
+        ? [{ url: course.thumbnail, alt: course.title }]
+        : [{ url: "/icon/K.png", alt: course.title }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: course.title,
+      description,
+      images: course.thumbnail ? [course.thumbnail] : ["/icon/K.png"],
+    },
+  };
+}
 
 export default async function CourseDetailPage({
   params,
@@ -25,8 +69,37 @@ export default async function CourseDetailPage({
   const effective = getEffectivePrice(course);
   const promo = hasPromo(course);
 
+  const courseJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Course",
+    name: course.title,
+    description: course.description,
+    provider: {
+      "@type": "Organization",
+      name: "koukibeauty academy",
+      sameAs: absoluteUrl("/"),
+    },
+    image: course.thumbnail || absoluteUrl("/icon/K.png"),
+    inLanguage: "ar",
+    ...(course.priceType === "paid"
+      ? {
+          offers: {
+            "@type": "Offer",
+            price: effective,
+            priceCurrency: "DZD",
+            availability: "https://schema.org/InStock",
+            url: absoluteUrl(`/courses/${course.slug}`),
+          },
+        }
+      : {}),
+  };
+
   return (
     <div className="min-h-full">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(courseJsonLd) }}
+      />
       <SiteHeader />
       <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
         <div className="grid gap-8 lg:grid-cols-2 lg:gap-12">

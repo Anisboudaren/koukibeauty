@@ -1,7 +1,21 @@
+import type { Metadata } from "next";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/home/site-footer";
 import { CourseCard } from "@/components/courses/course-card";
 import { getCategories, getCourseSummaries } from "@/lib/courses";
+
+export const metadata: Metadata = {
+  title: "جميع الدورات والبرامج",
+  description:
+    "تصفّحي برامج أكاديمية كوكي بيوتي — شعر، مكياج، تسريحات والمزيد. دورات أونلاين مرتّبة بالوحدات والدروس.",
+  alternates: { canonical: "/courses" },
+  openGraph: {
+    title: "جميع الدورات | koukibeauty academy",
+    description:
+      "كتالوج برامج التجميل والعناية — تعلّمي أونلاين مع كوكي.",
+    url: "/courses",
+  },
+};
 
 export default async function CoursesPage() {
   const courses = await getCourseSummaries();

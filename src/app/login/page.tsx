@@ -53,7 +53,7 @@ function LoginForm() {
         return;
       }
 
-      let state = await hydrateFromApi();
+      const state = await hydrateFromApi();
       const lower = id.toLowerCase();
       const student = state.students.find(
         (s) =>
