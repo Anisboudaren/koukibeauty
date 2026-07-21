@@ -65,10 +65,11 @@ export function useLms() {
     saveTimer.current = setTimeout(() => {
       const { session: _, ...payload } = next;
       void _;
+      const passwords = store.takePendingPasswords();
       void fetch("/api/lms", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ ...payload, passwords }),
       }).catch(() => {
         /* keep local */
       });

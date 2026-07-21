@@ -17,8 +17,11 @@ export async function GET() {
 
 export async function PUT(request: Request) {
   try {
-    const body = (await request.json()) as Omit<LmsState, "session">;
-    await saveLmsStateToDb(body);
+    const body = (await request.json()) as Omit<LmsState, "session"> & {
+      passwords?: Record<string, string>;
+    };
+    const { passwords, ...state } = body;
+    await saveLmsStateToDb(state, passwords ?? {});
     return NextResponse.json({ ok: true });
   } catch (e) {
     console.error(e);

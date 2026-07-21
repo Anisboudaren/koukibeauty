@@ -33,47 +33,37 @@ function LoginForm() {
     setLoading(true);
 
     try {
-      const adminRes = await fetch("/api/auth/login", {
+      const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ identifier: id, password }),
       });
 
-      if (adminRes.ok) {
+      const data = (await res.json().catch(() => null)) as {
+        error?: string;
+        role?: string;
+        user?: { id: string };
+      } | null;
+
+      if (!res.ok) {
+        setError(data?.error || "بيانات الدخول غير صحيحة");
+        return;
+      }
+
+      if (data?.role === "admin") {
         setSession({ role: "admin" });
         router.push(nextPath.startsWith("/admin") ? nextPath : "/admin");
         return;
       }
 
-      if (adminRes.status !== 401) {
-        const data = (await adminRes.json().catch(() => null)) as {
-          error?: string;
-        } | null;
-        setError(data?.error || "تعذّر الدخول");
+      if (data?.role === "student" && data.user?.id) {
+        const state = await hydrateFromApi();
+        setSession({ role: "student", studentId: data.user.id }, state);
+        router.push("/dashboard");
         return;
       }
 
-      const state = await hydrateFromApi();
-      const lower = id.toLowerCase();
-      const student = state.students.find(
-        (s) =>
-          s.phone === id ||
-          s.whatsapp === id ||
-          (s.email && s.email.toLowerCase() === lower)
-      );
-
-      if (!student) {
-        setError("بيانات الدخول غير صحيحة");
-        return;
-      }
-
-      if (student.status === "suspended") {
-        setError("حسابك معلّق — تواصلي مع الإدارة");
-        return;
-      }
-
-      setSession({ role: "student", studentId: student.id }, state);
-      router.push("/dashboard");
+      setError("تعذّر الدخول");
     } catch {
       setError("تعذّر الاتصال. حاولي مرة أخرى.");
     } finally {

@@ -20,51 +20,62 @@ export async function POST(request: Request) {
     }
 
     const lower = identifier.toLowerCase();
-    const admin = await prisma.user.findFirst({
+
+    const user = await prisma.user.findFirst({
       where: {
-        role: "ADMIN",
         OR: [
           { email: { equals: lower, mode: "insensitive" } },
           { phone: identifier },
+          { whatsapp: identifier },
           { fullName: { equals: identifier, mode: "insensitive" } },
           { email: { startsWith: `${lower}@`, mode: "insensitive" } },
         ],
       },
     });
 
-    if (!admin || admin.status !== "ACTIVE") {
+    if (!user || user.status !== "ACTIVE") {
       return NextResponse.json(
         { error: "بيانات الدخول غير صحيحة" },
         { status: 401 }
       );
     }
 
-    if (!verifyPassword(password, admin.passwordHash)) {
+    if (!verifyPassword(password, user.passwordHash)) {
       return NextResponse.json(
         { error: "بيانات الدخول غير صحيحة" },
         { status: 401 }
       );
     }
 
-    const res = NextResponse.json({
+    if (user.role === "ADMIN") {
+      const res = NextResponse.json({
+        ok: true,
+        role: "admin",
+        user: {
+          id: user.id,
+          fullName: user.fullName,
+          email: user.email,
+        },
+      });
+      res.cookies.set(ADMIN_COOKIE, await signAdminSession(user.id), {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 14,
+      });
+      return res;
+    }
+
+    return NextResponse.json({
       ok: true,
-      role: "admin",
+      role: "student",
       user: {
-        id: admin.id,
-        fullName: admin.fullName,
-        email: admin.email,
+        id: user.id,
+        fullName: user.fullName,
+        email: user.email,
       },
     });
-
-    res.cookies.set(ADMIN_COOKIE, await signAdminSession(admin.id), {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 14,
-    });
-
-    return res;
   } catch (e) {
     console.error(e);
     return NextResponse.json({ error: "تعذّر الدخول" }, { status: 500 });

@@ -107,14 +107,20 @@ export async function loadLmsStateFromDb(): Promise<Omit<LmsState, "session">> {
 
 /** Persist LMS snapshot (students / orders / progress). Session stays client-side. */
 export async function saveLmsStateToDb(
-  state: Omit<LmsState, "session">
+  state: Omit<LmsState, "session">,
+  passwords: Record<string, string> = {}
 ): Promise<void> {
+  const { hashPassword } = await import("@/lib/auth/password");
+
   await prisma.$transaction(async (tx) => {
     // Students (users with STUDENT role)
     const existingStudents = await tx.user.findMany({
       where: { role: "STUDENT" },
-      select: { id: true },
+      select: { id: true, passwordHash: true },
     });
+    const existingById = new Map(
+      existingStudents.map((s) => [s.id, s.passwordHash])
+    );
     const incomingIds = new Set(state.students.map((s) => s.id));
     const toDelete = existingStudents
       .map((s) => s.id)
@@ -125,6 +131,10 @@ export async function saveLmsStateToDb(
     }
 
     for (const s of state.students) {
+      const plain = passwords[s.id];
+      const hashed = plain ? hashPassword(plain) : undefined;
+      const previousHash = existingById.get(s.id);
+
       await tx.user.upsert({
         where: { id: s.id },
         create: {
@@ -134,7 +144,7 @@ export async function saveLmsStateToDb(
           email: s.email || null,
           whatsapp: s.whatsapp,
           wilaya: s.wilaya,
-          passwordHash: "pending",
+          passwordHash: hashed || previousHash || hashPassword("changeme"),
           role: "STUDENT",
           status: s.status === "suspended" ? "SUSPENDED" : "ACTIVE",
           createdAt: new Date(s.createdAt),
@@ -146,6 +156,7 @@ export async function saveLmsStateToDb(
           whatsapp: s.whatsapp,
           wilaya: s.wilaya,
           status: s.status === "suspended" ? "SUSPENDED" : "ACTIVE",
+          ...(hashed ? { passwordHash: hashed } : {}),
         },
       });
 

@@ -120,6 +120,26 @@ function canUseStorage() {
 
 const SESSION_KEY = "kouki-lms-session";
 
+/** Plain passwords waiting to be hashed on next API persist (never stored in state). */
+const pendingPasswords = new Map<string, string>();
+
+export function queueStudentPassword(studentId: string, password: string) {
+  if (password.trim().length >= 6) {
+    pendingPasswords.set(studentId, password.trim());
+  }
+}
+
+export function takePendingPasswords(): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [id, pw] of pendingPasswords) out[id] = pw;
+  pendingPasswords.clear();
+  return out;
+}
+
+export function peekPendingPasswords(): Record<string, string> {
+  return Object.fromEntries(pendingPasswords);
+}
+
 export function emptyLmsState(): LmsState {
   return {
     students: [],
@@ -172,10 +192,11 @@ export async function hydrateFromApi(): Promise<LmsState> {
 export async function persistToApi(state: LmsState): Promise<void> {
   const { session: _, ...payload } = state;
   void _;
+  const passwords = takePendingPasswords();
   await fetch("/api/lms", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ ...payload, passwords }),
   });
 }
 
@@ -204,6 +225,7 @@ export function upsertStudent(
     id?: string;
     enrolledCourseIds?: string[];
     status?: Student["status"];
+    password?: string;
   },
   state = loadState()
 ): LmsState {
@@ -222,6 +244,7 @@ export function upsertStudent(
           }
         : s
     );
+    if (input.password) queueStudentPassword(input.id, input.password);
     const next = { ...state, students };
     saveState(next);
     return next;
@@ -238,6 +261,7 @@ export function upsertStudent(
     enrolledCourseIds: input.enrolledCourseIds ?? [],
     createdAt: now(),
   };
+  if (input.password) queueStudentPassword(student.id, input.password);
   const next = { ...state, students: [...state.students, student] };
   saveState(next);
   return next;

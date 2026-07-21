@@ -32,6 +32,7 @@ export default function AdminStudentsPage() {
     email: "",
     whatsapp: "",
     wilaya: "16",
+    password: "",
   });
 
   const filtered = useMemo(() => {
@@ -55,6 +56,7 @@ export default function AdminStudentsPage() {
 
   function createStudent(e: FormEvent) {
     e.preventDefault();
+    if (form.password.trim().length < 6) return;
     apply(
       upsertStudent({
         fullName: form.fullName,
@@ -62,6 +64,7 @@ export default function AdminStudentsPage() {
         email: form.email || undefined,
         whatsapp: form.whatsapp || form.phone,
         wilaya: form.wilaya,
+        password: form.password,
       })
     );
     setForm({
@@ -70,6 +73,7 @@ export default function AdminStudentsPage() {
       email: "",
       whatsapp: "",
       wilaya: "16",
+      password: "",
     });
     setShowForm(false);
   }
@@ -135,6 +139,16 @@ export default function AdminStudentsPage() {
               </option>
             ))}
           </select>
+          <input
+            required
+            type="password"
+            minLength={6}
+            placeholder="كلمة المرور (6 أحرف على الأقل)"
+            value={form.password}
+            onChange={(e) => setForm({ ...form, password: e.target.value })}
+            className="h-11 rounded-full border border-border px-4 text-sm sm:col-span-2"
+            autoComplete="new-password"
+          />
           <button
             type="submit"
             className="h-11 rounded-full bg-accent text-sm font-medium text-white sm:col-span-2"

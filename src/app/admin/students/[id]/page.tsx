@@ -50,6 +50,7 @@ export default function StudentDetailPage() {
   function saveProfile(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
+    const password = String(fd.get("password") || "").trim();
     apply(
       upsertStudent({
         id: student!.id,
@@ -58,8 +59,13 @@ export default function StudentDetailPage() {
         email: String(fd.get("email") || "") || undefined,
         whatsapp: String(fd.get("whatsapp") || ""),
         wilaya: String(fd.get("wilaya") || ""),
+        ...(password.length >= 6 ? { password } : {}),
       })
     );
+    const pwInput = e.currentTarget.elements.namedItem(
+      "password"
+    ) as HTMLInputElement | null;
+    if (pwInput) pwInput.value = "";
   }
 
   const orders = state.courseOrders.filter((o) => o.studentId === id);
@@ -116,6 +122,19 @@ export default function StudentDetailPage() {
             </option>
           ))}
         </select>
+        <div className="sm:col-span-2">
+          <label className="mb-1 block text-xs text-ink-muted">
+            كلمة مرور جديدة (اتركيها فارغة للإبقاء على الحالية)
+          </label>
+          <input
+            name="password"
+            type="password"
+            minLength={6}
+            placeholder="••••••••"
+            className="h-11 w-full rounded-full border border-border px-4 text-sm"
+            autoComplete="new-password"
+          />
+        </div>
         <button
           type="submit"
           className="h-11 rounded-full bg-accent text-sm font-medium text-white sm:col-span-2"

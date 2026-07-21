@@ -57,6 +57,7 @@ export default function SignupPage() {
         email: email.trim() || undefined,
         whatsapp: whatsapp.trim(),
         wilaya,
+        password,
       });
       const created = next.students[next.students.length - 1];
       const withSession = setSession(
