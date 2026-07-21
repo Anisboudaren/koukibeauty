@@ -63,7 +63,8 @@ export function useLms() {
   const persistRemote = useCallback((next: LmsState) => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
-      const { session: _s, ...payload } = next;
+      const { session: _, ...payload } = next;
+      void _;
       void fetch("/api/lms", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },

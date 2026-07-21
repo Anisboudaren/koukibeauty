@@ -22,7 +22,7 @@ export function CurriculumSheet({
   const [open, setOpen] = useState(false);
 
   const modules = [...course.modules].sort((a, b) => a.order - b.order);
-  let globalIndex = 0;
+  const lessonIndex = new Map(lessons.map((l, i) => [l.id, i + 1]));
 
   const list = (
     <div className="space-y-5">
@@ -35,8 +35,7 @@ export function CurriculumSheet({
             </p>
             <div className="space-y-1">
               {modLessons.map((lesson) => {
-                globalIndex += 1;
-                const index = globalIndex;
+                const index = lessonIndex.get(lesson.id) ?? 0;
                 const active = lesson.id === currentLessonId;
                 const hasVideo = Boolean(lesson.videoId);
                 return (

@@ -170,7 +170,8 @@ export async function hydrateFromApi(): Promise<LmsState> {
 }
 
 export async function persistToApi(state: LmsState): Promise<void> {
-  const { session: _s, ...payload } = state;
+  const { session: _, ...payload } = state;
+  void _;
   await fetch("/api/lms", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },

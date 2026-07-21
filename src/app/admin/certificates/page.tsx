@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { MessageCircle } from "lucide-react";
 import { useLms } from "@/lib/lms/use-lms";
@@ -39,10 +39,6 @@ export default function AdminCertificatesPage() {
     return orders.filter((o) => o.status === filter);
   }, [state, filter]);
 
-  useEffect(() => {
-    setPage(1);
-  }, [filter]);
-
   const pageItems = paginate(list, page, PAGE_SIZE);
   const cancelTarget = state?.certificateOrders.find((o) => o.id === cancelId);
   const cancelStudent = cancelTarget
@@ -73,7 +69,10 @@ export default function AdminCertificatesPage() {
           <button
             key={key}
             type="button"
-            onClick={() => setFilter(key)}
+            onClick={() => {
+              setFilter(key);
+              setPage(1);
+            }}
             className={cn(
               "rounded-full px-4 py-1.5 text-xs font-medium",
               filter === key

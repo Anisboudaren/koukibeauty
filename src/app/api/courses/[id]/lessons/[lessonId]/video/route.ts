@@ -12,8 +12,8 @@ export async function GET(
     return NextResponse.json({ error: "الدورة غير موجودة" }, { status: 404 });
   }
 
-  for (const module of course.modules) {
-    const lesson = module.lessons.find((l) => l.id === lessonId);
+  for (const mod of course.modules) {
+    const lesson = mod.lessons.find((l) => l.id === lessonId);
     if (lesson?.videoId) {
       return NextResponse.json({
         videoId: lesson.videoId,

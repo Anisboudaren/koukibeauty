@@ -65,7 +65,7 @@ export default async function CourseDetailPage({
     [...m.lessons].sort((a, b) => a.order - b.order)
   );
   const firstLesson = lessons[0];
-  let lessonNumber = 0;
+  const lessonIndex = new Map(lessons.map((l, i) => [l.id, i + 1]));
   const effective = getEffectivePrice(course);
   const promo = hasPromo(course);
 
@@ -197,7 +197,7 @@ export default async function CourseDetailPage({
                   </h3>
                   <div className="space-y-2">
                     {modLessons.map((lesson) => {
-                      lessonNumber += 1;
+                      const number = lessonIndex.get(lesson.id) ?? 0;
                       return (
                         <div
                           key={lesson.id}
@@ -205,7 +205,7 @@ export default async function CourseDetailPage({
                         >
                           <div className="flex items-start gap-3">
                             <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-black text-xs text-white">
-                              {lessonNumber}
+                              {number}
                             </span>
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { Plus, Search } from "lucide-react";
 import { useLms } from "@/lib/lms/use-lms";
@@ -45,10 +45,6 @@ export default function AdminStudentsPage() {
         s.whatsapp.includes(term)
     );
   }, [state, q]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [q]);
 
   const pageItems = paginate(filtered, page, PAGE_SIZE);
   const deleteTarget = state?.students.find((s) => s.id === deleteId);
@@ -152,7 +148,10 @@ export default function AdminStudentsPage() {
         <Search className="pointer-events-none absolute start-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
         <input
           value={q}
-          onChange={(e) => setQ(e.target.value)}
+          onChange={(e) => {
+            setQ(e.target.value);
+            setPage(1);
+          }}
           placeholder="بحث بالاسم أو الهاتف…"
           className="h-11 w-full rounded-full border border-border bg-surface pe-4 ps-10 text-sm"
         />

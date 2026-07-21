@@ -136,10 +136,7 @@ export function Pagination({
   );
 }
 
-export function paginate<T>(items: T[], page: number, pageSize: number): T[] {
-  const start = (page - 1) * pageSize;
-  return items.slice(start, start + pageSize);
-}
+export { paginate } from "@/lib/paginate";
 
 export function StatusPill({ status }: { status: string }) {
   const map: Record<string, string> = {

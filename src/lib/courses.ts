@@ -212,9 +212,9 @@ export function findLesson(
   course: Course,
   lessonId: string
 ): { lesson: Lesson; module: Module } | null {
-  for (const module of course.modules) {
-    const lesson = module.lessons.find((l) => l.id === lessonId);
-    if (lesson) return { lesson, module };
+  for (const mod of course.modules) {
+    const lesson = mod.lessons.find((l) => l.id === lessonId);
+    if (lesson) return { lesson, module: mod };
   }
   return null;
 }
