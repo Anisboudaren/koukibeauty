@@ -117,6 +117,12 @@ export default function StudentDashboardPage() {
           تصفّحي الدورات
         </Link>
         <Link
+          href="/dashboard/certificates"
+          className="inline-flex min-h-11 items-center rounded-full border border-border px-6 text-sm font-medium"
+        >
+          الشهادات وطلباتها
+        </Link>
+        <Link
           href="/dashboard/requests"
           className="inline-flex min-h-11 items-center rounded-full border border-border px-6 text-sm font-medium"
         >

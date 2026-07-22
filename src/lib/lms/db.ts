@@ -216,8 +216,11 @@ export async function saveLmsStateToDb(
       });
     }
 
-    await tx.lessonProgress.deleteMany();
+    // Sync progress per (student, course) — never wipe unrelated progress rows
     for (const p of state.progress) {
+      await tx.lessonProgress.deleteMany({
+        where: { userId: p.studentId, courseId: p.courseId },
+      });
       for (const lessonId of p.completedLessonIds) {
         const lesson = await tx.lesson.findUnique({
           where: { id: lessonId },

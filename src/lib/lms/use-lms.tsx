@@ -1,6 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import type { LmsState, Session } from "./types";
 import * as store from "./store";
 import { useBusy } from "@/components/busy-overlay";
@@ -12,7 +21,6 @@ function loadSession(): Session {
   try {
     const raw = localStorage.getItem(SESSION_KEY);
     if (!raw) {
-      // migrate from old full-state cache
       const legacy = store.loadState();
       return legacy.session;
     }
@@ -28,7 +36,22 @@ function saveSession(session: Session) {
   else localStorage.removeItem(SESSION_KEY);
 }
 
-export function useLms() {
+export type ApplyOptions = {
+  /** Skip full-screen busy overlay (e.g. marking a lesson done) */
+  quiet?: boolean;
+};
+
+type LmsContextValue = {
+  state: LmsState | null;
+  ready: boolean;
+  refresh: () => Promise<void>;
+  apply: (next: LmsState, opts?: ApplyOptions) => void;
+  store: typeof store;
+};
+
+const LmsContext = createContext<LmsContextValue | null>(null);
+
+function useLmsStore(): LmsContextValue {
   const [state, setState] = useState<LmsState | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const busyActive = useRef(false);
@@ -47,7 +70,6 @@ export function useLms() {
         session = { role: "admin" };
         saveSession(session);
       } else if (session?.role === "admin") {
-        // Cookie expired — drop admin session
         session = null;
         saveSession(null);
       }
@@ -64,9 +86,10 @@ export function useLms() {
   }, [refresh]);
 
   const persistRemote = useCallback(
-    (next: LmsState) => {
+    (next: LmsState, opts?: ApplyOptions) => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
-      if (!busyActive.current) {
+      const quiet = opts?.quiet === true;
+      if (!quiet && !busyActive.current) {
         busyActive.current = true;
         showBusy("جاري الحفظ…");
       }
@@ -84,32 +107,50 @@ export function useLms() {
             /* keep local */
           })
           .finally(() => {
-            const wait = Math.max(0, 350 - (Date.now() - started));
-            window.setTimeout(() => {
-              busyActive.current = false;
-              hideBusy();
-            }, wait);
+            if (!quiet) {
+              const wait = Math.max(0, 350 - (Date.now() - started));
+              window.setTimeout(() => {
+                busyActive.current = false;
+                hideBusy();
+              }, wait);
+            }
           });
-      }, 280);
+      }, quiet ? 500 : 280);
     },
     [showBusy, hideBusy]
   );
 
   const apply = useCallback(
-    (next: LmsState) => {
+    (next: LmsState, opts?: ApplyOptions) => {
       saveSession(next.session);
       store.saveState(next);
       setState(next);
-      persistRemote(next);
+      persistRemote(next, opts);
     },
     [persistRemote]
   );
 
-  return {
-    state,
-    ready: state !== null,
-    refresh,
-    apply,
-    store,
-  };
+  return useMemo(
+    () => ({
+      state,
+      ready: state !== null,
+      refresh,
+      apply,
+      store,
+    }),
+    [state, refresh, apply]
+  );
+}
+
+export function LmsProvider({ children }: { children: ReactNode }) {
+  const value = useLmsStore();
+  return <LmsContext.Provider value={value}>{children}</LmsContext.Provider>;
+}
+
+export function useLms(): LmsContextValue {
+  const ctx = useContext(LmsContext);
+  if (!ctx) {
+    throw new Error("useLms must be used within LmsProvider");
+  }
+  return ctx;
 }

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, Home, LayoutDashboard } from "lucide-react";
+import { Award, BookOpen, Home, LayoutDashboard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLms } from "@/lib/lms/use-lms";
 
@@ -22,6 +22,7 @@ export function MobileNav() {
       : [
           { href: "/dashboard", label: "لوحتي", icon: Home },
           { href: "/courses", label: "الدورات", icon: BookOpen },
+          { href: "/dashboard/certificates", label: "الشهادات", icon: Award },
           { href: "/dashboard/requests", label: "طلباتي", icon: LayoutDashboard },
         ];
 

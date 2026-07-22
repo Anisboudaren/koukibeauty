@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
+import { toast } from "sonner";
 import { useLms } from "@/lib/lms/use-lms";
 import { markLessonComplete } from "@/lib/lms/store";
 
@@ -24,6 +25,7 @@ export function LearnAccessGate({
 }: Props) {
   const { state, ready, apply } = useLms();
   const router = useRouter();
+  const [saving, setSaving] = useState(false);
 
   const session = state?.session;
   const student =
@@ -81,13 +83,6 @@ export function LearnAccessGate({
     );
   }
 
-  function completeLesson() {
-    if (session?.role !== "student") return;
-    apply(
-      markLessonComplete(session.studentId, courseId, lessonId, lessonCount)
-    );
-  }
-
   const prog =
     session?.role === "student"
       ? state?.progress.find(
@@ -97,6 +92,39 @@ export function LearnAccessGate({
       : null;
   const done = prog?.completedLessonIds.includes(lessonId);
 
+  async function completeLesson() {
+    if (session?.role !== "student" || !state || done || saving) return;
+
+    setSaving(true);
+    const studentId = session.studentId;
+
+    // Optimistic local update from live React state (not stale localStorage)
+    apply(
+      markLessonComplete(studentId, courseId, lessonId, lessonCount, state),
+      { quiet: true }
+    );
+
+    try {
+      const res = await fetch("/api/lms/progress", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ studentId, courseId, lessonId }),
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        toast.error(data?.error || "تعذّر حفظ إنجاز الدرس");
+        return;
+      }
+      toast.success("تم تعليم الدرس كمكتمل");
+    } catch {
+      toast.error("تعذّر الاتصال. حاولي مرة أخرى.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <div>
       {children}
@@ -104,11 +132,15 @@ export function LearnAccessGate({
         <div className="mt-4">
           <button
             type="button"
-            onClick={completeLesson}
-            disabled={done}
+            onClick={() => void completeLesson()}
+            disabled={done || saving}
             className="inline-flex min-h-11 items-center rounded-full border border-border px-5 text-sm font-medium transition hover:bg-blush-soft disabled:opacity-50"
           >
-            {done ? "تم إنجاز هذا الدرس ✓" : "تعليم الدرس كمكتمل"}
+            {done
+              ? "تم إنجاز هذا الدرس ✓"
+              : saving
+                ? "جاري الحفظ…"
+                : "تعليم الدرس كمكتمل"}
           </button>
         </div>
       )}

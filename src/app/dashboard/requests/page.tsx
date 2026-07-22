@@ -61,7 +61,15 @@ export default function StudentRequestsPage() {
       </section>
 
       <section className="mt-10">
-        <h2 className="mb-3 font-bold">طلبات الشهادات</h2>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="font-bold">طلبات الشهادات</h2>
+          <Link
+            href="/dashboard/certificates"
+            className="text-xs font-medium text-accent hover:underline"
+          >
+            طلب شهادة جديدة
+          </Link>
+        </div>
         <div className="space-y-3">
           {certOrders.map((o) => (
             <div
@@ -78,7 +86,12 @@ export default function StudentRequestsPage() {
             </div>
           ))}
           {certOrders.length === 0 && (
-            <p className="text-sm text-ink-muted">لا توجد طلبات شهادات</p>
+            <p className="text-sm text-ink-muted">
+              لا توجد طلبات شهادات.{" "}
+              <Link href="/dashboard/certificates" className="text-accent">
+                اطلبي شهادة
+              </Link>
+            </p>
           )}
         </div>
       </section>
