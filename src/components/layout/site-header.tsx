@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Menu, Search, X } from "lucide-react";
 import { BrandLogo } from "./brand-logo";
+import { CourseSearch } from "@/components/courses/course-search";
 import { cn } from "@/lib/utils";
 import { useLms } from "@/lib/lms/use-lms";
 import { clearSession } from "@/lib/lms/store";
@@ -20,11 +20,10 @@ export function SiteHeader({
   className,
   overHero = false,
 }: SiteHeaderProps) {
-  const router = useRouter();
   const { state } = useLms();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [query, setQuery] = useState("");
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
   const role = state?.session?.role;
 
@@ -57,9 +56,12 @@ export function SiteHeader({
   }, [overHero]);
 
   useEffect(() => {
-    if (!menuOpen) return;
+    if (!menuOpen && !mobileSearchOpen) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setMenuOpen(false);
+      if (e.key === "Escape") {
+        setMenuOpen(false);
+        setMobileSearchOpen(false);
+      }
     };
     document.body.style.overflow = "hidden";
     window.addEventListener("keydown", onKey);
@@ -67,17 +69,10 @@ export function SiteHeader({
       document.body.style.overflow = "";
       window.removeEventListener("keydown", onKey);
     };
-  }, [menuOpen]);
+  }, [menuOpen, mobileSearchOpen]);
 
   const useInverted = overHero ? !scrolled : inverted;
   const solid = overHero ? scrolled : !inverted;
-
-  function onSearch(e: FormEvent) {
-    e.preventDefault();
-    const q = query.trim();
-    router.push(q ? `/courses?q=${encodeURIComponent(q)}` : "/courses");
-    setMenuOpen(false);
-  }
 
   function logout() {
     clearSession();
@@ -123,19 +118,11 @@ export function SiteHeader({
           </nav>
 
           <div className="relative z-10 flex items-center gap-2 sm:gap-3">
-            <form
-              onSubmit={onSearch}
-              className="relative hidden w-[200px] lg:block xl:w-[240px]"
-            >
-              <Search className="pointer-events-none absolute start-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-muted" />
-              <input
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="ابحثي…"
-                className="h-9 w-full rounded-full border border-border/50 bg-[#fff5f6] pe-3 ps-9 text-sm text-foreground outline-none transition placeholder:text-ink-subtle focus:border-blush-deep focus:ring-2 focus:ring-blush/35"
-              />
-            </form>
+            <CourseSearch
+              className="hidden w-[220px] lg:block xl:w-[280px]"
+              size="sm"
+              placeholder="ابحثي…"
+            />
 
             {role ? (
               <button
@@ -164,18 +151,22 @@ export function SiteHeader({
               </Link>
             )}
 
-            <Link
-              href="/courses"
+            <button
+              type="button"
+              onClick={() => {
+                setMobileSearchOpen(true);
+                setMenuOpen(false);
+              }}
               className={cn(
-                "inline-flex h-10 w-10 items-center justify-center rounded-full transition md:hidden",
+                "inline-flex h-10 w-10 items-center justify-center rounded-full transition lg:hidden",
                 useInverted
                   ? "bg-white/15 text-white backdrop-blur-sm"
                   : "bg-blush-soft text-foreground"
               )}
-              aria-label="البحث في الدورات"
+              aria-label="بحث"
             >
               <Search className="h-4 w-4" />
-            </Link>
+            </button>
 
             <button
               type="button"
@@ -194,6 +185,41 @@ export function SiteHeader({
           </div>
         </div>
       </header>
+
+      {/* Mobile search sheet */}
+      {mobileSearchOpen && (
+        <div className="fixed inset-0 z-[60] lg:hidden">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/55"
+            aria-label="إغلاق"
+            onClick={() => setMobileSearchOpen(false)}
+          />
+          <div
+            className="absolute inset-x-3 rounded-2xl border border-border bg-background p-3 shadow-2xl"
+            style={{
+              top: "calc(3.5rem + env(safe-area-inset-top, 0px) + 0.5rem)",
+            }}
+          >
+            <div className="mb-2 flex items-center justify-between px-1">
+              <p className="text-sm font-medium">بحث في الدورات</p>
+              <button
+                type="button"
+                onClick={() => setMobileSearchOpen(false)}
+                className="rounded-full p-1.5 hover:bg-blush-soft"
+                aria-label="إغلاق"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <CourseSearch
+              size="md"
+              placeholder="ابحثي عن دورة…"
+              onNavigate={() => setMobileSearchOpen(false)}
+            />
+          </div>
+        </div>
+      )}
 
       <div
         className={cn(
@@ -223,16 +249,12 @@ export function SiteHeader({
           }}
         >
           <div className="space-y-1 p-3">
-            <form onSubmit={onSearch} className="relative mb-2">
-              <Search className="pointer-events-none absolute start-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
-              <input
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="ابحثي عن دورة…"
-                className="h-11 w-full rounded-full border border-border/50 bg-[#fff5f6] pe-4 ps-10 text-sm text-foreground outline-none placeholder:text-ink-subtle focus:border-blush-deep focus:ring-2 focus:ring-blush/35"
-              />
-            </form>
+            <CourseSearch
+              size="md"
+              className="mb-2"
+              placeholder="ابحثي عن دورة…"
+              onNavigate={() => setMenuOpen(false)}
+            />
 
             {links.map((link) => (
               <Link

@@ -36,7 +36,7 @@ function emptyModule(order: number): Module {
     id: uid("module"),
     title: `الوحدة ${order}`,
     order,
-    lessons: [emptyLesson(1)],
+    lessons: [],
   };
 }
 
@@ -202,7 +202,6 @@ export function CourseForm({ initial }: CourseFormProps) {
       ...c,
       modules: c.modules.map((m) => {
         if (m.id !== moduleId) return m;
-        if (m.lessons.length <= 1) return m;
         return {
           ...m,
           lessons: m.lessons
@@ -241,20 +240,18 @@ export function CourseForm({ initial }: CourseFormProps) {
 
     const draft = { ...course, ...overrides };
 
-    const totalLessons = draft.modules.reduce(
-      (n, m) => n + m.lessons.length,
-      0
-    );
-    if (totalLessons === 0) {
-      setError("أضيفي درساً واحداً على الأقل للبرنامج");
+    // Only validate titles on modules/lessons that exist — empty programs are allowed
+    const blankModule = draft.modules.some((m) => !m.title.trim());
+    if (blankModule) {
+      setError("كل وحدة تحتاج عنواناً (أو احذفي الوحدات الفارغة)");
       return;
     }
 
-    const untitled = draft.modules.some(
-      (m) => !m.title.trim() || m.lessons.some((l) => !l.title.trim())
+    const blankLesson = draft.modules.some((m) =>
+      m.lessons.some((l) => !l.title.trim())
     );
-    if (untitled) {
-      setError("كل وحدة ودرس يحتاجان عنواناً");
+    if (blankLesson) {
+      setError("كل درس موجود يحتاج عنواناً (أو احذفيه)");
       return;
     }
 
@@ -657,7 +654,6 @@ export function CourseForm({ initial }: CourseFormProps) {
                               onClick={() =>
                                 removeLesson(mod.id, lesson.id)
                               }
-                              disabled={mod.lessons.length <= 1}
                               className="rounded-lg p-1.5 text-accent disabled:opacity-30 hover:bg-accent-subtle"
                             >
                               <Trash2 className="h-4 w-4" />

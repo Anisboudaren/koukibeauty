@@ -6,11 +6,23 @@ import { revalidateCoursePages } from "@/lib/revalidate-courses";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
   const admin = await getAdminFromCookies();
-  const summaries = await getCourseSummaries({
+  const { searchParams } = new URL(request.url);
+  const q = searchParams.get("q")?.trim().toLowerCase() ?? "";
+
+  let summaries = await getCourseSummaries({
     includeArchived: Boolean(admin),
   });
+
+  if (q) {
+    summaries = summaries.filter(
+      (c) =>
+        c.title.toLowerCase().includes(q) ||
+        c.category.toLowerCase().includes(q)
+    );
+  }
+
   return NextResponse.json(summaries);
 }
 
