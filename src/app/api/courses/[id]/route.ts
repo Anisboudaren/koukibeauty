@@ -31,16 +31,23 @@ export async function PUT(
   const existing = await getCourseById(id);
   if (!existing) return NextResponse.json({ error: "غير موجود" }, { status: 404 });
 
-  const body = (await request.json()) as Course;
-  const course: Course = {
-    ...existing,
-    ...body,
-    id,
-    updatedAt: new Date().toISOString(),
-  };
-  await saveCourse(course);
-  revalidateCoursePages(course.slug);
-  return NextResponse.json(course);
+  try {
+    const body = (await request.json()) as Course;
+    const course: Course = {
+      ...existing,
+      ...body,
+      id,
+      updatedAt: new Date().toISOString(),
+    };
+    await saveCourse(course);
+    revalidateCoursePages(course.slug);
+    return NextResponse.json(course);
+  } catch (err) {
+    console.error("[PUT /api/courses/:id]", err);
+    const message =
+      err instanceof Error ? err.message : "تعذّر حفظ البرنامج";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }
 
 export async function DELETE(

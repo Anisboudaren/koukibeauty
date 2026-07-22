@@ -30,16 +30,23 @@ export async function POST(request: Request) {
   const auth = await requireAdminApi();
   if ("error" in auth) return auth.error;
 
-  const body = (await request.json()) as Course;
-  const id = body.id || String(Date.now());
-  const course: Course = {
-    ...body,
-    id,
-    slug: body.slug || `course-${id}`,
-    createdAt: body.createdAt || new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-  await saveCourse(course);
-  revalidateCoursePages(course.slug);
-  return NextResponse.json(course, { status: 201 });
+  try {
+    const body = (await request.json()) as Course;
+    const id = body.id || String(Date.now());
+    const course: Course = {
+      ...body,
+      id,
+      slug: body.slug || `course-${id}`,
+      createdAt: body.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    await saveCourse(course);
+    revalidateCoursePages(course.slug);
+    return NextResponse.json(course, { status: 201 });
+  } catch (err) {
+    console.error("[POST /api/courses]", err);
+    const message =
+      err instanceof Error ? err.message : "تعذّر حفظ البرنامج";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }

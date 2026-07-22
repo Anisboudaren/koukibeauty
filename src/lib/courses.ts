@@ -148,9 +148,12 @@ export async function saveCourse(course: Course): Promise<void> {
     durationHours: course.duration.hours,
     durationMinutes: course.duration.minutes,
     priceType: course.priceType,
-    price: course.price,
-    promoPrice: course.promoPrice,
-    archived: course.archived,
+    price: Math.round(Number(course.price)) || 0,
+    promoPrice:
+      course.promoPrice == null
+        ? null
+        : Math.round(Number(course.promoPrice)) || null,
+    archived: course.archived ?? false,
     previewVideoId: course.previewVideoId,
     benefits: course.benefits,
     targetAudience: course.targetAudience,
@@ -158,44 +161,127 @@ export async function saveCourse(course: Course): Promise<void> {
     updatedAt: new Date(),
   };
 
-  await prisma.$transaction(async (tx) => {
-    await tx.course.upsert({
-      where: { id: course.id },
-      create: {
-        id: course.id,
-        ...data,
-        createdAt: course.createdAt
-          ? new Date(course.createdAt)
-          : new Date(),
-      },
-      update: data,
-    });
+  const existing = await prisma.course.findUnique({
+    where: { id: course.id },
+    include: courseInclude,
+  });
 
-    await tx.lesson.deleteMany({
-      where: { module: { courseId: course.id } },
-    });
-    await tx.module.deleteMany({ where: { courseId: course.id } });
+  // Always upsert course metadata first (price, title, archive, …)
+  await prisma.course.upsert({
+    where: { id: course.id },
+    create: {
+      id: course.id,
+      ...data,
+      createdAt: course.createdAt ? new Date(course.createdAt) : new Date(),
+    },
+    update: data,
+  });
 
-    for (const m of course.modules) {
-      await tx.module.create({
-        data: {
-          id: m.id,
-          courseId: course.id,
-          title: m.title,
-          order: m.order,
-          lessons: {
-            create: m.lessons.map((l) => ({
+  // Skip curriculum rewrite when modules/lessons are unchanged — avoids
+  // Neon interactive-transaction timeouts on large programs (price-only edits).
+  if (existing && sameCurriculum(mapCourse(existing).modules, course.modules)) {
+    return;
+  }
+
+  await prisma.$transaction(
+    async (tx) => {
+      const dbModules = await tx.module.findMany({
+        where: { courseId: course.id },
+        include: { lessons: { select: { id: true } } },
+      });
+
+      const incomingModuleIds = new Set(course.modules.map((m) => m.id));
+      const modulesToRemove = dbModules
+        .filter((m) => !incomingModuleIds.has(m.id))
+        .map((m) => m.id);
+      if (modulesToRemove.length) {
+        await tx.module.deleteMany({
+          where: { id: { in: modulesToRemove } },
+        });
+      }
+
+      for (const m of course.modules) {
+        await tx.module.upsert({
+          where: { id: m.id },
+          create: {
+            id: m.id,
+            courseId: course.id,
+            title: m.title,
+            order: m.order,
+          },
+          update: {
+            courseId: course.id,
+            title: m.title,
+            order: m.order,
+          },
+        });
+
+        const dbLessonIds =
+          dbModules.find((x) => x.id === m.id)?.lessons.map((l) => l.id) ??
+          (
+            await tx.lesson.findMany({
+              where: { moduleId: m.id },
+              select: { id: true },
+            })
+          ).map((l) => l.id);
+
+        const incomingLessonIds = new Set(m.lessons.map((l) => l.id));
+        const lessonsToRemove = dbLessonIds.filter(
+          (id) => !incomingLessonIds.has(id)
+        );
+        if (lessonsToRemove.length) {
+          await tx.lesson.deleteMany({
+            where: { id: { in: lessonsToRemove } },
+          });
+        }
+
+        for (const l of m.lessons) {
+          await tx.lesson.upsert({
+            where: { id: l.id },
+            create: {
               id: l.id,
+              moduleId: m.id,
               title: l.title,
               description: l.description ?? "",
               order: l.order,
               videoId: l.videoId,
+            },
+            update: {
+              moduleId: m.id,
+              title: l.title,
+              description: l.description ?? "",
+              order: l.order,
+              videoId: l.videoId,
+            },
+          });
+        }
+      }
+    },
+    { maxWait: 15_000, timeout: 60_000 }
+  );
+}
+
+function sameCurriculum(a: Module[], b: Module[]): boolean {
+  const norm = (modules: Module[]) =>
+    JSON.stringify(
+      [...modules]
+        .sort((x, y) => x.order - y.order || x.id.localeCompare(y.id))
+        .map((m) => ({
+          id: m.id,
+          title: m.title,
+          order: m.order,
+          lessons: [...m.lessons]
+            .sort((x, y) => x.order - y.order || x.id.localeCompare(y.id))
+            .map((l) => ({
+              id: l.id,
+              title: l.title,
+              description: l.description ?? "",
+              order: l.order,
+              videoId: l.videoId ?? null,
             })),
-          },
-        },
-      });
-    }
-  });
+        }))
+    );
+  return norm(a) === norm(b);
 }
 
 export async function deleteCourse(id: string): Promise<void> {

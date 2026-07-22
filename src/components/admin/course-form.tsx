@@ -17,6 +17,7 @@ import type { Course, Lesson, Module } from "@/lib/types";
 import { DEFAULT_COURSE_LIST_PRICE } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useBusy } from "@/components/busy-overlay";
+import { toast } from "sonner";
 
 function uid(prefix: string) {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
@@ -108,7 +109,6 @@ export function CourseForm({ initial }: CourseFormProps) {
     lessonVideoDrafts(normalized)
   );
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
   const [openModules, setOpenModules] = useState<Record<string, boolean>>(
     () =>
       Object.fromEntries(normalized.modules.map((m) => [m.id, true]))
@@ -238,14 +238,12 @@ export function CourseForm({ initial }: CourseFormProps) {
   }
 
   async function saveCourse(overrides?: Partial<Course>) {
-    setError("");
-
     const draft = { ...course, ...overrides };
 
     // Only validate titles on modules/lessons that exist — empty programs are allowed
     const blankModule = draft.modules.some((m) => !m.title.trim());
     if (blankModule) {
-      setError("كل وحدة تحتاج عنواناً (أو احذفي الوحدات الفارغة)");
+      toast.error("كل وحدة تحتاج عنواناً (أو احذفي الوحدات الفارغة)");
       return;
     }
 
@@ -253,7 +251,7 @@ export function CourseForm({ initial }: CourseFormProps) {
       m.lessons.some((l) => !l.title.trim())
     );
     if (blankLesson) {
-      setError("كل درس موجود يحتاج عنواناً (أو احذفيه)");
+      toast.error("كل درس موجود يحتاج عنواناً (أو احذفيه)");
       return;
     }
 
@@ -272,9 +270,11 @@ export function CourseForm({ initial }: CourseFormProps) {
     const payload: Course = {
       ...draft,
       previewVideoId,
-      price: Number(draft.price) || 0,
+      price: Math.round(Number(draft.price)) || 0,
       promoPrice:
-        draft.promoPrice == null ? null : Number(draft.promoPrice) || null,
+        draft.promoPrice == null
+          ? null
+          : Math.round(Number(draft.promoPrice)) || null,
       archived: draft.archived ?? false,
       modules: draft.modules.map((m, mi) => ({
         ...m,
@@ -319,9 +319,12 @@ export function CourseForm({ initial }: CourseFormProps) {
         // Keep overlay visible until navigation finishes
         return;
       }
-      setError("تعذّر الحفظ. حاولي مرة أخرى.");
+      const data = (await res.json().catch(() => null)) as {
+        error?: string;
+      } | null;
+      toast.error(data?.error || "تعذّر الحفظ. حاولي مرة أخرى.");
     } catch {
-      setError("تعذّر الاتصال بالخادم.");
+      toast.error("تعذّر الاتصال بالخادم.");
     }
     setSaving(false);
     hideBusy();
@@ -733,12 +736,6 @@ export function CourseForm({ initial }: CourseFormProps) {
           })}
         </div>
       </section>
-
-      {error && (
-        <p className="rounded-xl bg-accent-subtle px-4 py-3 text-sm text-accent-dark">
-          {error}
-        </p>
-      )}
 
       {saveBar}
     </form>
