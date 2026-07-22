@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { MessageCircle } from "lucide-react";
+import { MessageCircle, RefreshCw } from "lucide-react";
 import { useLms } from "@/lib/lms/use-lms";
 import {
   cancelCertificateOrder,
@@ -27,10 +27,27 @@ import {
 const PAGE_SIZE = 8;
 
 export default function AdminCertificatesPage() {
-  const { state, ready, apply } = useLms();
+  const { state, ready, apply, refresh } = useLms();
   const [filter, setFilter] = useState<OrderStatus | "all">("pending");
   const [page, setPage] = useState(1);
   const [cancelId, setCancelId] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    void refresh();
+    const onFocus = () => void refresh();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [refresh]);
+
+  async function handleRefresh() {
+    setRefreshing(true);
+    try {
+      await refresh();
+    } finally {
+      setRefreshing(false);
+    }
+  }
 
   const list = useMemo(() => {
     if (!state) return [];
@@ -51,11 +68,26 @@ export default function AdminCertificatesPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold">طلبات الشهادات</h1>
-      <p className="mt-1 text-sm text-ink-muted">
-        أرسلي الشهادة عبر واتساب ثم علّمي الطلب كمكتمل — يمكن الإلغاء بعد القبول
-        أيضاً
-      </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">طلبات الشهادات</h1>
+          <p className="mt-1 text-sm text-ink-muted">
+            أرسلي الشهادة عبر واتساب ثم علّمي الطلب كمكتمل — يمكن الإلغاء بعد
+            القبول أيضاً
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => void handleRefresh()}
+          disabled={refreshing}
+          className="inline-flex min-h-10 items-center gap-2 rounded-full border border-border px-4 text-sm font-medium hover:bg-blush-soft disabled:opacity-50"
+        >
+          <RefreshCw
+            className={cn("h-4 w-4", refreshing && "animate-spin")}
+          />
+          تحديث
+        </button>
+      </div>
 
       <div className="mt-6 flex flex-wrap gap-2">
         {(
@@ -137,7 +169,9 @@ export default function AdminCertificatesPage() {
                 {o.status === "pending" && (
                   <button
                     type="button"
-                    onClick={() => apply(completeCertificateOrder(o.id))}
+                    onClick={() =>
+                      apply(completeCertificateOrder(o.id, state))
+                    }
                     className="inline-flex min-h-10 items-center rounded-full bg-accent px-4 text-sm font-medium text-white"
                   >
                     تم الإرسال
@@ -146,7 +180,9 @@ export default function AdminCertificatesPage() {
                 {o.status === "cancelled" && (
                   <button
                     type="button"
-                    onClick={() => apply(restoreCertificateOrder(o.id))}
+                    onClick={() =>
+                      apply(restoreCertificateOrder(o.id, state))
+                    }
                     className="inline-flex min-h-10 items-center rounded-full bg-accent px-4 text-sm font-medium text-white"
                   >
                     إعادة إلى معلّق
@@ -188,7 +224,7 @@ export default function AdminCertificatesPage() {
         confirmLabel="تأكيد الإلغاء"
         onCancel={() => setCancelId(null)}
         onConfirm={() => {
-          if (cancelId) apply(cancelCertificateOrder(cancelId));
+          if (cancelId) apply(cancelCertificateOrder(cancelId, state));
           setCancelId(null);
         }}
       />

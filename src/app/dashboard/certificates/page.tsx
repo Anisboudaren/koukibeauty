@@ -5,16 +5,13 @@ import Link from "next/link";
 import { Award, CheckCircle2, Clock3, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useLms } from "@/lib/lms/use-lms";
-import {
-  createCertificateOrder,
-  getProgressPercent,
-} from "@/lib/lms/store";
+import { getProgressPercent } from "@/lib/lms/store";
 import type { CertificateOrder } from "@/lib/lms/types";
 import type { CourseSummary } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export default function StudentCertificatesPage() {
-  const { state, ready, apply } = useLms();
+  const { state, ready, apply, refresh } = useLms();
   const [courses, setCourses] = useState<CourseSummary[]>([]);
   const [orderingId, setOrderingId] = useState<string | null>(null);
 
@@ -91,18 +88,53 @@ export default function StudentCertificatesPage() {
     if (!student || !state || orderingId) return;
     setOrderingId(courseId);
     try {
-      const { state: next } = createCertificateOrder(
-        {
+      const res = await fetch("/api/lms/certificates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           studentId: student.id,
           courseId,
           courseTitle: title,
-        },
-        state
-      );
+        }),
+      });
+
+      const data = (await res.json().catch(() => null)) as {
+        error?: string;
+        order?: {
+          id: string;
+          studentId: string;
+          courseId: string;
+          courseTitle: string;
+          status: "pending" | "done" | "cancelled";
+          createdAt: string;
+          completedAt?: string;
+        };
+        existing?: boolean;
+      } | null;
+
+      if (!res.ok || !data?.order) {
+        toast.error(data?.error || "تعذّر إنشاء الطلب. حاولي مرة أخرى.");
+        return;
+      }
+
+      const order = data.order;
+      const already = state.certificateOrders.some((o) => o.id === order.id);
+      const next = already
+        ? state
+        : {
+            ...state,
+            certificateOrders: [order, ...state.certificateOrders],
+          };
+
       apply(next, { quiet: true });
-      toast.success("تم إرسال طلب الشهادة — ستتواصل الإدارة عبر واتساب");
+      await refresh();
+      toast.success(
+        data.existing
+          ? "يوجد طلب شهادة لهذا البرنامج مسبقاً"
+          : "تم إرسال طلب الشهادة — ستتواصل الإدارة عبر واتساب"
+      );
     } catch {
-      toast.error("تعذّر إنشاء الطلب. حاولي مرة أخرى.");
+      toast.error("تعذّر الاتصال. حاولي مرة أخرى.");
     } finally {
       setOrderingId(null);
     }

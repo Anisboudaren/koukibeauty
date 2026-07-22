@@ -173,16 +173,16 @@ export async function saveLmsStateToDb(
       }
     }
 
-    // Course orders — replace all
-    await tx.courseOrder.deleteMany();
+    // Course orders — upsert only (never wipe student/admin orders from a stale snapshot)
     for (const o of state.courseOrders) {
       const exists = await tx.course.findUnique({
         where: { id: o.courseId },
         select: { id: true },
       });
       if (!exists) continue;
-      await tx.courseOrder.create({
-        data: {
+      await tx.courseOrder.upsert({
+        where: { id: o.id },
+        create: {
           id: o.id,
           userId: o.studentId,
           courseId: o.courseId,
@@ -193,24 +193,37 @@ export async function saveLmsStateToDb(
           createdAt: new Date(o.createdAt),
           completedAt: o.completedAt ? new Date(o.completedAt) : null,
         },
+        update: {
+          courseTitle: o.courseTitle,
+          amount: o.amount,
+          status: o.status,
+          note: o.note ?? null,
+          completedAt: o.completedAt ? new Date(o.completedAt) : null,
+        },
       });
     }
 
-    await tx.certificateOrder.deleteMany();
+    // Certificate orders — upsert only
     for (const o of state.certificateOrders) {
       const exists = await tx.course.findUnique({
         where: { id: o.courseId },
         select: { id: true },
       });
       if (!exists) continue;
-      await tx.certificateOrder.create({
-        data: {
+      await tx.certificateOrder.upsert({
+        where: { id: o.id },
+        create: {
           id: o.id,
           userId: o.studentId,
           courseId: o.courseId,
           courseTitle: o.courseTitle,
           status: o.status,
           createdAt: new Date(o.createdAt),
+          completedAt: o.completedAt ? new Date(o.completedAt) : null,
+        },
+        update: {
+          courseTitle: o.courseTitle,
+          status: o.status,
           completedAt: o.completedAt ? new Date(o.completedAt) : null,
         },
       });
