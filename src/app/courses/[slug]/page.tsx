@@ -3,16 +3,13 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/layout/site-header";
 import { CourseAccessCta } from "@/components/courses/course-access-cta";
-import { getCourseBySlug, getCourseSummaries } from "@/lib/courses";
+import { getCourseBySlug } from "@/lib/courses";
 import { formatDuration, levelLabel } from "@/lib/parse-course-content";
 import { getEffectivePrice, hasPromo } from "@/lib/types";
 import { absoluteUrl } from "@/lib/seo";
 import { CheckCircle, PlayCircle } from "lucide-react";
 
-export async function generateStaticParams() {
-  const courses = await getCourseSummaries();
-  return courses.map((c) => ({ slug: c.slug }));
-}
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,

@@ -11,6 +11,9 @@ import { getCourseSummaries } from "@/lib/courses";
 import type { Metadata } from "next";
 import { SITE_NAME_AR, SITE_TAGLINE } from "@/lib/seo";
 
+/** Always read latest prices/courses from the database */
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: { absolute: `${SITE_NAME_AR} — دورات جمال أونلاين` },
   description: SITE_TAGLINE,

@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { getCourseSummaries, saveCourse } from "@/lib/courses";
 import type { Course } from "@/lib/types";
 import { getAdminFromCookies, requireAdminApi } from "@/lib/auth/admin";
+import { revalidateCoursePages } from "@/lib/revalidate-courses";
+
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   const admin = await getAdminFromCookies();
@@ -25,5 +28,6 @@ export async function POST(request: Request) {
     updatedAt: new Date().toISOString(),
   };
   await saveCourse(course);
+  revalidateCoursePages(course.slug);
   return NextResponse.json(course, { status: 201 });
 }

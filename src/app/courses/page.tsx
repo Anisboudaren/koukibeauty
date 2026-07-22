@@ -4,6 +4,8 @@ import { SiteFooter } from "@/components/home/site-footer";
 import { CourseCard } from "@/components/courses/course-card";
 import { getCategories, getCourseSummaries } from "@/lib/courses";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "جميع الدورات والبرامج",
   description:

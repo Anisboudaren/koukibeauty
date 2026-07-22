@@ -6,6 +6,9 @@ import {
 } from "@/lib/courses";
 import type { Course } from "@/lib/types";
 import { requireAdminApi } from "@/lib/auth/admin";
+import { revalidateCoursePages } from "@/lib/revalidate-courses";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(
   _request: Request,
@@ -36,6 +39,7 @@ export async function PUT(
     updatedAt: new Date().toISOString(),
   };
   await saveCourse(course);
+  revalidateCoursePages(course.slug);
   return NextResponse.json(course);
 }
 
@@ -47,6 +51,8 @@ export async function DELETE(
   if ("error" in auth) return auth.error;
 
   const { id } = await params;
+  const existing = await getCourseById(id);
   await deleteCourse(id);
+  revalidateCoursePages(existing?.slug);
   return NextResponse.json({ ok: true });
 }
