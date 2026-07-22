@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { AuthField, AuthSelect, PasswordField } from "@/components/auth/fields";
+import { useBusy } from "@/components/busy-overlay";
 import { WILAYAS } from "@/lib/wilayas";
 import { cn } from "@/lib/utils";
 import {
@@ -16,6 +17,7 @@ import {
 
 export default function SignupPage() {
   const router = useRouter();
+  const { showBusy, hideBusy } = useBusy();
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -49,6 +51,7 @@ export default function SignupPage() {
     if (!validate()) return;
 
     setLoading(true);
+    showBusy("جاري إنشاء الحساب…");
     try {
       await hydrateFromApi();
       const next = upsertStudent({
@@ -68,8 +71,8 @@ export default function SignupPage() {
       router.push("/dashboard");
     } catch {
       setErrors({ phone: "تعذّر إنشاء الحساب. حاولي مرة أخرى." });
-    } finally {
       setLoading(false);
+      hideBusy();
     }
   }
 

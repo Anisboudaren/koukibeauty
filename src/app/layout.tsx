@@ -7,6 +7,7 @@ import {
   SITE_URL,
   SITE_LOCALE,
 } from "@/lib/seo";
+import { Providers } from "@/components/providers";
 import "./globals.css";
 
 const cairo = Cairo({
@@ -140,7 +141,7 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

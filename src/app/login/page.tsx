@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { AuthField, PasswordField } from "@/components/auth/fields";
+import { useBusy } from "@/components/busy-overlay";
 import { hydrateFromApi, setSession } from "@/lib/lms/store";
 
 function LoginForm() {
@@ -15,6 +16,7 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const { showBusy, hideBusy } = useBusy();
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -31,6 +33,7 @@ function LoginForm() {
     }
 
     setLoading(true);
+    showBusy("جاري الدخول…");
 
     try {
       const res = await fetch("/api/auth/login", {
@@ -47,6 +50,8 @@ function LoginForm() {
 
       if (!res.ok) {
         setError(data?.error || "بيانات الدخول غير صحيحة");
+        setLoading(false);
+        hideBusy();
         return;
       }
 
@@ -64,10 +69,12 @@ function LoginForm() {
       }
 
       setError("تعذّر الدخول");
+      setLoading(false);
+      hideBusy();
     } catch {
       setError("تعذّر الاتصال. حاولي مرة أخرى.");
-    } finally {
       setLoading(false);
+      hideBusy();
     }
   }
 

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { LmsState, Session } from "./types";
 import * as store from "./store";
+import { useBusy } from "@/components/busy-overlay";
 
 const SESSION_KEY = "kouki-lms-session";
 
@@ -30,6 +31,8 @@ function saveSession(session: Session) {
 export function useLms() {
   const [state, setState] = useState<LmsState | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const busyActive = useRef(false);
+  const { showBusy, hideBusy } = useBusy();
 
   const refresh = useCallback(async () => {
     try {
@@ -60,21 +63,37 @@ export function useLms() {
     void refresh();
   }, [refresh]);
 
-  const persistRemote = useCallback((next: LmsState) => {
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => {
-      const { session: _, ...payload } = next;
-      void _;
-      const passwords = store.takePendingPasswords();
-      void fetch("/api/lms", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...payload, passwords }),
-      }).catch(() => {
-        /* keep local */
-      });
-    }, 400);
-  }, []);
+  const persistRemote = useCallback(
+    (next: LmsState) => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      if (!busyActive.current) {
+        busyActive.current = true;
+        showBusy("جاري الحفظ…");
+      }
+      saveTimer.current = setTimeout(() => {
+        const { session: _, ...payload } = next;
+        void _;
+        const passwords = store.takePendingPasswords();
+        const started = Date.now();
+        void fetch("/api/lms", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...payload, passwords }),
+        })
+          .catch(() => {
+            /* keep local */
+          })
+          .finally(() => {
+            const wait = Math.max(0, 350 - (Date.now() - started));
+            window.setTimeout(() => {
+              busyActive.current = false;
+              hideBusy();
+            }, wait);
+          });
+      }, 280);
+    },
+    [showBusy, hideBusy]
+  );
 
   const apply = useCallback(
     (next: LmsState) => {

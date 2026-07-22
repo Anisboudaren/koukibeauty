@@ -16,6 +16,7 @@ import { extractYouTubeId } from "@/lib/youtube";
 import type { Course, Lesson, Module } from "@/lib/types";
 import { DEFAULT_COURSE_LIST_PRICE } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { useBusy } from "@/components/busy-overlay";
 
 function uid(prefix: string) {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
@@ -95,6 +96,7 @@ interface CourseFormProps {
 
 export function CourseForm({ initial }: CourseFormProps) {
   const router = useRouter();
+  const { showBusy, hideBusy } = useBusy();
   const normalized = initial ? normalizeCourse(initial) : emptyCourse();
   const [course, setCourse] = useState<Course>(normalized);
   const [previewUrl, setPreviewUrl] = useState(
@@ -256,6 +258,13 @@ export function CourseForm({ initial }: CourseFormProps) {
     }
 
     setSaving(true);
+    const busyLabel =
+      overrides?.archived !== undefined
+        ? overrides.archived
+          ? "جاري الأرشفة…"
+          : "جاري إلغاء الأرشفة…"
+        : "جاري حفظ البرنامج…";
+    showBusy(busyLabel);
 
     const previewVideoId =
       extractYouTubeId(previewUrl) ?? draft.previewVideoId;
@@ -307,13 +316,15 @@ export function CourseForm({ initial }: CourseFormProps) {
         }
         router.push("/admin/courses");
         router.refresh();
-      } else {
-        setError("تعذّر الحفظ. حاولي مرة أخرى.");
+        // Keep overlay visible until navigation finishes
+        return;
       }
+      setError("تعذّر الحفظ. حاولي مرة أخرى.");
     } catch {
       setError("تعذّر الاتصال بالخادم.");
     }
     setSaving(false);
+    hideBusy();
   }
 
   const lessonCount = course.modules.reduce((n, m) => n + m.lessons.length, 0);

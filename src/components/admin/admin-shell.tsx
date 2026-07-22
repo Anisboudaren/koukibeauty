@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { BrandLogo } from "@/components/layout/brand-logo";
+import { useBusy } from "@/components/busy-overlay";
 import { cn } from "@/lib/utils";
 import { clearSession } from "@/lib/lms/store";
 
@@ -49,6 +50,7 @@ function isActive(pathname: string, href: string) {
 export function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [moreOpen, setMoreOpen] = useState(false);
+  const { showBusy } = useBusy();
 
   useEffect(() => {
     setMoreOpen(false);
@@ -68,6 +70,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
   }, [moreOpen]);
 
   function logout() {
+    showBusy("جاري الخروج…");
     void fetch("/api/auth/logout", { method: "POST" }).finally(() => {
       clearSession();
       window.location.href = "/login";

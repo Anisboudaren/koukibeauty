@@ -12,6 +12,7 @@ import {
   Pagination,
   paginate,
 } from "@/components/admin/confirm-dialog";
+import { useBusy } from "@/components/busy-overlay";
 
 const PAGE_SIZE = 10;
 
@@ -21,6 +22,7 @@ export default function AdminCoursesPage() {
   const [page, setPage] = useState(1);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const { state } = useLms();
+  const { withBusy } = useBusy();
 
   useEffect(() => {
     fetch("/api/courses")
@@ -37,9 +39,14 @@ export default function AdminCoursesPage() {
 
   async function confirmDelete() {
     if (!deleteId) return;
-    await fetch(`/api/courses/${deleteId}`, { method: "DELETE" });
-    setCourses((prev) => prev.filter((c) => c.id !== deleteId));
+    const id = deleteId;
     setDeleteId(null);
+    await withBusy(
+      fetch(`/api/courses/${id}`, { method: "DELETE" }).then(() => {
+        setCourses((prev) => prev.filter((c) => c.id !== id));
+      }),
+      "جاري الحذف…"
+    );
   }
 
   function enrolledCount(courseId: string) {
