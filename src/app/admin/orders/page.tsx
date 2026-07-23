@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { MessageCircle } from "lucide-react";
 import { useLms } from "@/lib/lms/use-lms";
-import { cancelCourseOrder, completeCourseOrder, restoreCourseOrder } from "@/lib/lms/store";
 import {
   buildWhatsAppUrl,
   courseOrderMessage,
@@ -23,10 +22,39 @@ import {
 const PAGE_SIZE = 8;
 
 export default function AdminOrdersPage() {
-  const { state, ready, apply } = useLms();
+  const { state, ready, refresh } = useLms();
   const [filter, setFilter] = useState<OrderStatus | "all">("pending");
   const [page, setPage] = useState(1);
   const [cancelId, setCancelId] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [error, setError] = useState("");
+
+  async function patchOrder(
+    id: string,
+    status: "pending" | "done" | "cancelled"
+  ) {
+    setError("");
+    setBusyId(id);
+    try {
+      const res = await fetch(`/api/lms/orders/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        setError(data?.error || "تعذّر تحديث الطلب");
+        return;
+      }
+      await refresh();
+    } catch {
+      setError("تعذّر الاتصال");
+    } finally {
+      setBusyId(null);
+    }
+  }
 
   const list = useMemo(() => {
     if (!state) return [];
@@ -139,8 +167,9 @@ export default function AdminOrdersPage() {
                 {o.status === "pending" && (
                   <button
                     type="button"
-                    onClick={() => apply(completeCourseOrder(o.id))}
-                    className="inline-flex min-h-10 items-center rounded-full bg-accent px-4 text-sm font-medium text-white"
+                    disabled={busyId === o.id}
+                    onClick={() => void patchOrder(o.id, "done")}
+                    className="inline-flex min-h-10 items-center rounded-full bg-accent px-4 text-sm font-medium text-white disabled:opacity-60"
                   >
                     تم الدفع — منح الوصول
                   </button>
@@ -148,8 +177,9 @@ export default function AdminOrdersPage() {
                 {o.status === "cancelled" && (
                   <button
                     type="button"
-                    onClick={() => apply(restoreCourseOrder(o.id))}
-                    className="inline-flex min-h-10 items-center rounded-full bg-accent px-4 text-sm font-medium text-white"
+                    disabled={busyId === o.id}
+                    onClick={() => void patchOrder(o.id, "pending")}
+                    className="inline-flex min-h-10 items-center rounded-full bg-accent px-4 text-sm font-medium text-white disabled:opacity-60"
                   >
                     إعادة إلى معلّق
                   </button>
@@ -157,8 +187,9 @@ export default function AdminOrdersPage() {
                 {o.status !== "cancelled" && (
                   <button
                     type="button"
+                    disabled={busyId === o.id}
                     onClick={() => setCancelId(o.id)}
-                    className="inline-flex min-h-10 items-center rounded-full border border-border px-4 text-sm font-medium"
+                    className="inline-flex min-h-10 items-center rounded-full border border-border px-4 text-sm font-medium disabled:opacity-60"
                   >
                     إلغاء الطلب
                   </button>
@@ -171,6 +202,12 @@ export default function AdminOrdersPage() {
           <EmptyHint>لا توجد طلبات في هذا التصفية</EmptyHint>
         )}
       </div>
+
+      {error && (
+        <p className="mt-3 text-sm text-accent" role="alert">
+          {error}
+        </p>
+      )}
 
       <Pagination
         page={page}
@@ -192,8 +229,9 @@ export default function AdminOrdersPage() {
         confirmLabel="تأكيد الإلغاء"
         onCancel={() => setCancelId(null)}
         onConfirm={() => {
-          if (cancelId) apply(cancelCourseOrder(cancelId));
+          const id = cancelId;
           setCancelId(null);
+          if (id) void patchOrder(id, "cancelled");
         }}
       />
     </div>

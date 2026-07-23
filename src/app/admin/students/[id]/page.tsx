@@ -4,18 +4,16 @@ import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useLms } from "@/lib/lms/use-lms";
-import {
-  getProgressPercent,
-  setStudentCourses,
-  upsertStudent,
-} from "@/lib/lms/store";
+import { getProgressPercent } from "@/lib/lms/store";
 import { WILAYAS } from "@/lib/wilayas";
 import type { CourseSummary } from "@/lib/types";
 
 export default function StudentDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { state, ready, apply } = useLms();
+  const { state, ready, refresh } = useLms();
   const [courses, setCourses] = useState<CourseSummary[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     fetch("/api/courses")
@@ -40,32 +38,57 @@ export default function StudentDetailPage() {
     );
   }
 
-  function toggleCourse(courseId: string) {
+  async function patchStudent(body: Record<string, unknown>) {
+    setError("");
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/lms/students/${student!.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = (await res.json().catch(() => null)) as {
+        error?: string;
+      } | null;
+      if (!res.ok) {
+        setError(data?.error || "تعذّر الحفظ");
+        return false;
+      }
+      await refresh();
+      return true;
+    } catch {
+      setError("تعذّر الاتصال");
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function toggleCourse(courseId: string) {
     const set = new Set(student!.enrolledCourseIds);
     if (set.has(courseId)) set.delete(courseId);
     else set.add(courseId);
-    apply(setStudentCourses(student!.id, [...set]));
+    await patchStudent({ enrolledCourseIds: [...set] });
   }
 
-  function saveProfile(e: FormEvent<HTMLFormElement>) {
+  async function saveProfile(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     const password = String(fd.get("password") || "").trim();
-    apply(
-      upsertStudent({
-        id: student!.id,
-        fullName: String(fd.get("fullName") || ""),
-        phone: String(fd.get("phone") || ""),
-        email: String(fd.get("email") || "") || undefined,
-        whatsapp: String(fd.get("whatsapp") || ""),
-        wilaya: String(fd.get("wilaya") || ""),
-        ...(password.length >= 6 ? { password } : {}),
-      })
-    );
-    const pwInput = e.currentTarget.elements.namedItem(
-      "password"
-    ) as HTMLInputElement | null;
-    if (pwInput) pwInput.value = "";
+    const ok = await patchStudent({
+      fullName: String(fd.get("fullName") || ""),
+      phone: String(fd.get("phone") || ""),
+      email: String(fd.get("email") || "") || null,
+      whatsapp: String(fd.get("whatsapp") || ""),
+      wilaya: String(fd.get("wilaya") || ""),
+      ...(password.length >= 6 ? { password } : {}),
+    });
+    if (ok) {
+      const pwInput = e.currentTarget.elements.namedItem(
+        "password"
+      ) as HTMLInputElement | null;
+      if (pwInput) pwInput.value = "";
+    }
   }
 
   const orders = state.courseOrders.filter((o) => o.studentId === id);
@@ -135,11 +158,17 @@ export default function StudentDetailPage() {
             autoComplete="new-password"
           />
         </div>
+        {error && (
+          <p className="text-sm text-accent sm:col-span-2" role="alert">
+            {error}
+          </p>
+        )}
         <button
           type="submit"
-          className="h-11 rounded-full bg-accent text-sm font-medium text-white sm:col-span-2"
+          disabled={saving}
+          className="h-11 rounded-full bg-accent text-sm font-medium text-white disabled:opacity-60 sm:col-span-2"
         >
-          حفظ التعديلات
+          {saving ? "جاري الحفظ…" : "حفظ التعديلات"}
         </button>
       </form>
 
@@ -159,7 +188,8 @@ export default function StudentDetailPage() {
                 <input
                   type="checkbox"
                   checked={enrolled}
-                  onChange={() => toggleCourse(c.id)}
+                  disabled={saving}
+                  onChange={() => void toggleCourse(c.id)}
                   className="accent-accent"
                 />
                 <span className="min-w-0 flex-1 truncate">{c.title}</span>

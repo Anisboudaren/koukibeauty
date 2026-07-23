@@ -34,30 +34,33 @@ function mapStudent(
 }
 
 export async function loadLmsStateFromDb(): Promise<Omit<LmsState, "session">> {
-  const [users, courseOrders, certificateOrders, progressRows, lessonCounts] =
+  const [users, courseOrders, certificateOrders, progressRows, moduleLessonCounts] =
     await Promise.all([
       prisma.user.findMany({
         where: { role: "STUDENT" },
-        include: { enrollments: true },
+        include: { enrollments: { select: { courseId: true } } },
         orderBy: { createdAt: "desc" },
       }),
       prisma.courseOrder.findMany({ orderBy: { createdAt: "desc" } }),
       prisma.certificateOrder.findMany({ orderBy: { createdAt: "desc" } }),
-      prisma.lessonProgress.findMany(),
-      prisma.course.findMany({
+      prisma.lessonProgress.findMany({
+        select: { userId: true, courseId: true, lessonId: true },
+      }),
+      prisma.module.findMany({
         select: {
-          id: true,
-          modules: { select: { lessons: { select: { id: true } } } },
+          courseId: true,
+          _count: { select: { lessons: true } },
         },
       }),
     ]);
 
-  const lessonCountByCourse = new Map(
-    lessonCounts.map((c) => [
-      c.id,
-      c.modules.reduce((n, m) => n + m.lessons.length, 0),
-    ])
-  );
+  const lessonCountByCourse = new Map<string, number>();
+  for (const m of moduleLessonCounts) {
+    lessonCountByCourse.set(
+      m.courseId,
+      (lessonCountByCourse.get(m.courseId) ?? 0) + m._count.lessons
+    );
+  }
 
   const progressMap = new Map<string, CourseProgress>();
   for (const row of progressRows) {
@@ -160,8 +163,21 @@ export async function saveLmsStateToDb(
         },
       });
 
-      await tx.enrollment.deleteMany({ where: { userId: s.id } });
-      for (const courseId of s.enrolledCourseIds) {
+      const wanted = [...new Set(s.enrolledCourseIds)];
+      const existingEnrollments = await tx.enrollment.findMany({
+        where: { userId: s.id },
+        select: { courseId: true },
+      });
+      const existingIds = new Set(existingEnrollments.map((e) => e.courseId));
+      const wantedSet = new Set(wanted);
+      const toRemove = [...existingIds].filter((c) => !wantedSet.has(c));
+      if (toRemove.length) {
+        await tx.enrollment.deleteMany({
+          where: { userId: s.id, courseId: { in: toRemove } },
+        });
+      }
+      for (const courseId of wanted) {
+        if (existingIds.has(courseId)) continue;
         const exists = await tx.course.findUnique({
           where: { id: courseId },
           select: { id: true },

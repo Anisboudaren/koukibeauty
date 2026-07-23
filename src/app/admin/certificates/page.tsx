@@ -5,11 +5,6 @@ import Link from "next/link";
 import { MessageCircle, RefreshCw } from "lucide-react";
 import { useLms } from "@/lib/lms/use-lms";
 import {
-  cancelCertificateOrder,
-  completeCertificateOrder,
-  restoreCertificateOrder,
-} from "@/lib/lms/store";
-import {
   buildWhatsAppUrl,
   certificateOrderMessage,
   getAcademyWhatsApp,
@@ -27,11 +22,13 @@ import {
 const PAGE_SIZE = 8;
 
 export default function AdminCertificatesPage() {
-  const { state, ready, apply, refresh } = useLms();
+  const { state, ready, refresh } = useLms();
   const [filter, setFilter] = useState<OrderStatus | "all">("pending");
   const [page, setPage] = useState(1);
   const [cancelId, setCancelId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     void refresh();
@@ -46,6 +43,33 @@ export default function AdminCertificatesPage() {
       await refresh();
     } finally {
       setRefreshing(false);
+    }
+  }
+
+  async function patchCert(
+    id: string,
+    status: "pending" | "done" | "cancelled"
+  ) {
+    setError("");
+    setBusyId(id);
+    try {
+      const res = await fetch(`/api/lms/certificates/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        setError(data?.error || "تعذّر تحديث الطلب");
+        return;
+      }
+      await refresh();
+    } catch {
+      setError("تعذّر الاتصال");
+    } finally {
+      setBusyId(null);
     }
   }
 
@@ -169,10 +193,9 @@ export default function AdminCertificatesPage() {
                 {o.status === "pending" && (
                   <button
                     type="button"
-                    onClick={() =>
-                      apply(completeCertificateOrder(o.id, state))
-                    }
-                    className="inline-flex min-h-10 items-center rounded-full bg-accent px-4 text-sm font-medium text-white"
+                    disabled={busyId === o.id}
+                    onClick={() => void patchCert(o.id, "done")}
+                    className="inline-flex min-h-10 items-center rounded-full bg-accent px-4 text-sm font-medium text-white disabled:opacity-60"
                   >
                     تم الإرسال
                   </button>
@@ -180,10 +203,9 @@ export default function AdminCertificatesPage() {
                 {o.status === "cancelled" && (
                   <button
                     type="button"
-                    onClick={() =>
-                      apply(restoreCertificateOrder(o.id, state))
-                    }
-                    className="inline-flex min-h-10 items-center rounded-full bg-accent px-4 text-sm font-medium text-white"
+                    disabled={busyId === o.id}
+                    onClick={() => void patchCert(o.id, "pending")}
+                    className="inline-flex min-h-10 items-center rounded-full bg-accent px-4 text-sm font-medium text-white disabled:opacity-60"
                   >
                     إعادة إلى معلّق
                   </button>
@@ -191,8 +213,9 @@ export default function AdminCertificatesPage() {
                 {o.status !== "cancelled" && (
                   <button
                     type="button"
+                    disabled={busyId === o.id}
                     onClick={() => setCancelId(o.id)}
-                    className="inline-flex min-h-10 items-center rounded-full border border-border px-4 text-sm font-medium"
+                    className="inline-flex min-h-10 items-center rounded-full border border-border px-4 text-sm font-medium disabled:opacity-60"
                   >
                     إلغاء الطلب
                   </button>
@@ -205,6 +228,12 @@ export default function AdminCertificatesPage() {
           <EmptyHint>لا توجد طلبات في هذا التصفية</EmptyHint>
         )}
       </div>
+
+      {error && (
+        <p className="mt-3 text-sm text-accent" role="alert">
+          {error}
+        </p>
+      )}
 
       <Pagination
         page={page}
@@ -224,8 +253,9 @@ export default function AdminCertificatesPage() {
         confirmLabel="تأكيد الإلغاء"
         onCancel={() => setCancelId(null)}
         onConfirm={() => {
-          if (cancelId) apply(cancelCertificateOrder(cancelId, state));
+          const id = cancelId;
           setCancelId(null);
+          if (id) void patchCert(id, "cancelled");
         }}
       />
     </div>

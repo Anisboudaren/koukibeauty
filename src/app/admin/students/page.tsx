@@ -4,11 +4,6 @@ import { useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { Plus, Search } from "lucide-react";
 import { useLms } from "@/lib/lms/use-lms";
-import {
-  deleteStudent,
-  setStudentStatus,
-  upsertStudent,
-} from "@/lib/lms/store";
 import { WILAYAS } from "@/lib/wilayas";
 import { cn } from "@/lib/utils";
 import {
@@ -21,11 +16,15 @@ import {
 const PAGE_SIZE = 10;
 
 export default function AdminStudentsPage() {
-  const { state, ready, apply } = useLms();
+  const { state, ready, refresh } = useLms();
   const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
   const [showForm, setShowForm] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [formError, setFormError] = useState("");
+  const [actionError, setActionError] = useState("");
   const [form, setForm] = useState({
     fullName: "",
     phone: "",
@@ -54,28 +53,52 @@ export default function AdminStudentsPage() {
     return <p className="text-sm text-ink-muted">جاري التحميل…</p>;
   }
 
-  function createStudent(e: FormEvent) {
+  async function createStudent(e: FormEvent) {
     e.preventDefault();
-    if (form.password.trim().length < 6) return;
-    apply(
-      upsertStudent({
-        fullName: form.fullName,
-        phone: form.phone,
-        email: form.email || undefined,
-        whatsapp: form.whatsapp || form.phone,
-        wilaya: form.wilaya,
-        password: form.password,
-      })
-    );
-    setForm({
-      fullName: "",
-      phone: "",
-      email: "",
-      whatsapp: "",
-      wilaya: "16",
-      password: "",
-    });
-    setShowForm(false);
+    setFormError("");
+    if (form.password.trim().length < 6) {
+      setFormError("كلمة المرور يجب أن تكون 6 أحرف على الأقل");
+      return;
+    }
+
+    setCreating(true);
+    try {
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fullName: form.fullName.trim(),
+          phone: form.phone.trim(),
+          email: form.email.trim() || undefined,
+          whatsapp: (form.whatsapp || form.phone).trim(),
+          wilaya: form.wilaya,
+          password: form.password,
+        }),
+      });
+      const data = (await res.json().catch(() => null)) as {
+        error?: string;
+      } | null;
+
+      if (!res.ok) {
+        setFormError(data?.error || "تعذّر إنشاء الطالبة");
+        return;
+      }
+
+      await refresh();
+      setForm({
+        fullName: "",
+        phone: "",
+        email: "",
+        whatsapp: "",
+        wilaya: "16",
+        password: "",
+      });
+      setShowForm(false);
+    } catch {
+      setFormError("تعذّر الاتصال. حاولي مرة أخرى.");
+    } finally {
+      setCreating(false);
+    }
   }
 
   return (
@@ -89,7 +112,10 @@ export default function AdminStudentsPage() {
         </div>
         <button
           type="button"
-          onClick={() => setShowForm((v) => !v)}
+          onClick={() => {
+            setShowForm((v) => !v);
+            setFormError("");
+          }}
           className="inline-flex min-h-10 items-center gap-2 rounded-full bg-accent px-5 text-sm font-medium text-white"
         >
           <Plus className="h-4 w-4" />
@@ -149,11 +175,17 @@ export default function AdminStudentsPage() {
             className="h-11 rounded-full border border-border px-4 text-sm sm:col-span-2"
             autoComplete="new-password"
           />
+          {formError && (
+            <p className="text-sm text-accent sm:col-span-2" role="alert">
+              {formError}
+            </p>
+          )}
           <button
             type="submit"
-            className="h-11 rounded-full bg-accent text-sm font-medium text-white sm:col-span-2"
+            disabled={creating}
+            className="h-11 rounded-full bg-accent text-sm font-medium text-white disabled:opacity-60 sm:col-span-2"
           >
-            حفظ
+            {creating ? "جاري الحفظ…" : "حفظ"}
           </button>
         </form>
       )}
@@ -198,15 +230,33 @@ export default function AdminStudentsPage() {
             </span>
             <button
               type="button"
-              onClick={() =>
-                apply(
-                  setStudentStatus(
-                    s.id,
-                    s.status === "active" ? "suspended" : "active"
-                  )
-                )
-              }
-              className="rounded-full border border-border px-3 py-1.5 text-xs font-medium hover:bg-blush-soft"
+              disabled={busyId === s.id}
+              onClick={async () => {
+                setActionError("");
+                setBusyId(s.id);
+                try {
+                  const nextStatus =
+                    s.status === "active" ? "suspended" : "active";
+                  const res = await fetch(`/api/lms/students/${s.id}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ status: nextStatus }),
+                  });
+                  if (!res.ok) {
+                    const data = (await res.json().catch(() => null)) as {
+                      error?: string;
+                    } | null;
+                    setActionError(data?.error || "تعذّر تحديث الحالة");
+                    return;
+                  }
+                  await refresh();
+                } catch {
+                  setActionError("تعذّر الاتصال");
+                } finally {
+                  setBusyId(null);
+                }
+              }}
+              className="rounded-full border border-border px-3 py-1.5 text-xs font-medium hover:bg-blush-soft disabled:opacity-60"
             >
               {s.status === "active" ? "تعليق" : "تفعيل"}
             </button>
@@ -221,6 +271,12 @@ export default function AdminStudentsPage() {
         ))}
         {filtered.length === 0 && <EmptyHint>لا توجد نتائج</EmptyHint>}
       </div>
+
+      {actionError && (
+        <p className="mt-3 text-sm text-accent" role="alert">
+          {actionError}
+        </p>
+      )}
 
       <Pagination
         page={page}
@@ -240,8 +296,30 @@ export default function AdminStudentsPage() {
         confirmLabel="حذف"
         onCancel={() => setDeleteId(null)}
         onConfirm={() => {
-          if (deleteId) apply(deleteStudent(deleteId));
+          const id = deleteId;
           setDeleteId(null);
+          if (!id) return;
+          void (async () => {
+            setActionError("");
+            setBusyId(id);
+            try {
+              const res = await fetch(`/api/lms/students/${id}`, {
+                method: "DELETE",
+              });
+              if (!res.ok) {
+                const data = (await res.json().catch(() => null)) as {
+                  error?: string;
+                } | null;
+                setActionError(data?.error || "تعذّر الحذف");
+                return;
+              }
+              await refresh();
+            } catch {
+              setActionError("تعذّر الاتصال");
+            } finally {
+              setBusyId(null);
+            }
+          })();
         }}
       />
     </div>

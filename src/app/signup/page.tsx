@@ -8,12 +8,7 @@ import { useBusy } from "@/components/busy-overlay";
 import { redirectAfterAuth } from "@/lib/auth/redirect";
 import { WILAYAS } from "@/lib/wilayas";
 import { cn } from "@/lib/utils";
-import {
-  hydrateFromApi,
-  persistToApi,
-  setSession,
-  upsertStudent,
-} from "@/lib/lms/store";
+import { hydrateFromApi, setSession } from "@/lib/lms/store";
 
 export default function SignupPage() {
   const { showBusy, hideBusy } = useBusy();
@@ -52,37 +47,57 @@ export default function SignupPage() {
     setLoading(true);
     showBusy("جاري إنشاء الحساب…");
     try {
-      let base;
-      try {
-        base = await hydrateFromApi();
-      } catch {
-        base = undefined;
-      }
-
-      const next = upsertStudent(
-        {
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           fullName: fullName.trim(),
           phone: phone.trim(),
           email: email.trim() || undefined,
           whatsapp: whatsapp.trim(),
           wilaya,
           password,
-        },
-        base
-      );
-      const created = next.students[next.students.length - 1];
-      if (!created) throw new Error("create failed");
+        }),
+      });
 
-      const withSession = setSession(
-        { role: "student", studentId: created.id },
-        next
-      );
-      await persistToApi(withSession);
+      const data = (await res.json().catch(() => null)) as {
+        error?: string;
+        field?: string;
+        role?: string;
+        user?: { id: string };
+      } | null;
 
-      showBusy("جاري التحويل إلى لوحتك…");
-      redirectAfterAuth("/dashboard", "/dashboard");
-    } catch {
+      if (!res.ok) {
+        const field = data?.field || "phone";
+        setErrors({
+          [field]: data?.error || "تعذّر إنشاء الحساب. حاولي مرة أخرى.",
+        });
+        setLoading(false);
+        hideBusy();
+        return;
+      }
+
+      if (data?.role === "student" && data.user?.id) {
+        const studentId = data.user.id;
+        setSession({ role: "student", studentId });
+
+        try {
+          const state = await hydrateFromApi();
+          setSession({ role: "student", studentId }, state);
+        } catch {
+          /* keep local session */
+        }
+
+        showBusy("جاري التحويل إلى لوحتك…");
+        redirectAfterAuth("/dashboard", "/dashboard");
+        return;
+      }
+
       setErrors({ phone: "تعذّر إنشاء الحساب. حاولي مرة أخرى." });
+      setLoading(false);
+      hideBusy();
+    } catch {
+      setErrors({ phone: "تعذّر الاتصال. حاولي مرة أخرى." });
       setLoading(false);
       hideBusy();
     }

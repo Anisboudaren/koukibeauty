@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { loadLmsStateFromDb, saveLmsStateToDb } from "@/lib/lms/db";
 import type { LmsState } from "@/lib/lms/types";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const data = await loadLmsStateFromDb();

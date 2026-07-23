@@ -118,8 +118,14 @@ function useLmsStore(): LmsContextValue {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ ...payload, passwords }),
         })
+          .then(async (res) => {
+            if (!res.ok) {
+              // Roll back UI to server truth when persist fails (e.g. duplicate phone)
+              await refresh();
+            }
+          })
           .catch(() => {
-            /* keep local */
+            void refresh();
           })
           .finally(() => {
             if (!quiet) {
@@ -132,7 +138,7 @@ function useLmsStore(): LmsContextValue {
           });
       }, quiet ? 500 : 280);
     },
-    [showBusy, hideBusy]
+    [showBusy, hideBusy, refresh]
   );
 
   const apply = useCallback(
