@@ -2,10 +2,10 @@
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { AuthField, AuthSelect, PasswordField } from "@/components/auth/fields";
 import { useBusy } from "@/components/busy-overlay";
+import { redirectAfterAuth } from "@/lib/auth/redirect";
 import { WILAYAS } from "@/lib/wilayas";
 import { cn } from "@/lib/utils";
 import {
@@ -16,7 +16,6 @@ import {
 } from "@/lib/lms/store";
 
 export default function SignupPage() {
-  const router = useRouter();
   const { showBusy, hideBusy } = useBusy();
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
@@ -53,22 +52,35 @@ export default function SignupPage() {
     setLoading(true);
     showBusy("جاري إنشاء الحساب…");
     try {
-      await hydrateFromApi();
-      const next = upsertStudent({
-        fullName: fullName.trim(),
-        phone: phone.trim(),
-        email: email.trim() || undefined,
-        whatsapp: whatsapp.trim(),
-        wilaya,
-        password,
-      });
+      let base;
+      try {
+        base = await hydrateFromApi();
+      } catch {
+        base = undefined;
+      }
+
+      const next = upsertStudent(
+        {
+          fullName: fullName.trim(),
+          phone: phone.trim(),
+          email: email.trim() || undefined,
+          whatsapp: whatsapp.trim(),
+          wilaya,
+          password,
+        },
+        base
+      );
       const created = next.students[next.students.length - 1];
+      if (!created) throw new Error("create failed");
+
       const withSession = setSession(
         { role: "student", studentId: created.id },
         next
       );
       await persistToApi(withSession);
-      router.push("/dashboard");
+
+      showBusy("جاري التحويل إلى لوحتك…");
+      redirectAfterAuth("/dashboard", "/dashboard");
     } catch {
       setErrors({ phone: "تعذّر إنشاء الحساب. حاولي مرة أخرى." });
       setLoading(false);

@@ -2,14 +2,14 @@
 
 import { Suspense, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { AuthField, PasswordField } from "@/components/auth/fields";
 import { useBusy } from "@/components/busy-overlay";
+import { redirectAfterAuth } from "@/lib/auth/redirect";
 import { hydrateFromApi, setSession } from "@/lib/lms/store";
 
 function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const nextPath = searchParams.get("next") || "";
   const [identifier, setIdentifier] = useState("");
@@ -57,14 +57,28 @@ function LoginForm() {
 
       if (data?.role === "admin") {
         setSession({ role: "admin" });
-        router.push(nextPath.startsWith("/admin") ? nextPath : "/admin");
+        showBusy("جاري التحويل…");
+        redirectAfterAuth(
+          nextPath.startsWith("/admin") ? nextPath : "/admin",
+          "/admin"
+        );
         return;
       }
 
       if (data?.role === "student" && data.user?.id) {
-        const state = await hydrateFromApi();
-        setSession({ role: "student", studentId: data.user.id }, state);
-        router.push("/dashboard");
+        const studentId = data.user.id;
+        setSession({ role: "student", studentId });
+
+        // Hydration must not block login — session is already saved
+        try {
+          const state = await hydrateFromApi();
+          setSession({ role: "student", studentId }, state);
+        } catch {
+          /* keep local session */
+        }
+
+        showBusy("جاري التحويل إلى لوحتك…");
+        redirectAfterAuth(nextPath, "/dashboard");
         return;
       }
 

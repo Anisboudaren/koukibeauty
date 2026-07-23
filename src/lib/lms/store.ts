@@ -193,11 +193,14 @@ export async function persistToApi(state: LmsState): Promise<void> {
   const { session: _, ...payload } = state;
   void _;
   const passwords = takePendingPasswords();
-  await fetch("/api/lms", {
+  const res = await fetch("/api/lms", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ ...payload, passwords }),
   });
+  if (!res.ok) {
+    throw new Error("Failed to persist LMS state");
+  }
 }
 
 export function resetLmsStore() {

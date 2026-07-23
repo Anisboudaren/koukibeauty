@@ -10,6 +10,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { usePathname } from "next/navigation";
 import type { LmsState, Session } from "./types";
 import * as store from "./store";
 import { useBusy } from "@/components/busy-overlay";
@@ -21,12 +22,11 @@ function loadSession(): Session {
   try {
     const raw = localStorage.getItem(SESSION_KEY);
     if (!raw) {
-      const legacy = store.loadState();
-      return legacy.session;
+      return store.loadState().session;
     }
     return JSON.parse(raw) as Session;
   } catch {
-    return null;
+    return store.loadState().session ?? null;
   }
 }
 
@@ -52,6 +52,7 @@ type LmsContextValue = {
 const LmsContext = createContext<LmsContextValue | null>(null);
 
 function useLmsStore(): LmsContextValue {
+  const pathname = usePathname();
   const [state, setState] = useState<LmsState | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const busyActive = useRef(false);
@@ -70,8 +71,10 @@ function useLmsStore(): LmsContextValue {
         session = { role: "admin" };
         saveSession(session);
       } else if (session?.role === "admin") {
-        session = null;
-        saveSession(null);
+        // Admin cookie expired — keep a student session if one exists
+        const fallback = store.loadState().session;
+        session = fallback?.role === "student" ? fallback : null;
+        saveSession(session);
       }
       const next: LmsState = { ...data, session };
       setState(next);
@@ -84,6 +87,18 @@ function useLmsStore(): LmsContextValue {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  // Re-read session after navigations (login/signup set localStorage first)
+  useEffect(() => {
+    const session = loadSession();
+    setState((prev) => {
+      if (!prev) return prev;
+      if (JSON.stringify(prev.session) === JSON.stringify(session)) return prev;
+      const next = { ...prev, session };
+      store.saveState(next);
+      return next;
+    });
+  }, [pathname]);
 
   const persistRemote = useCallback(
     (next: LmsState, opts?: ApplyOptions) => {
